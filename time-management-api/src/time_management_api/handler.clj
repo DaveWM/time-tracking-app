@@ -1,6 +1,7 @@
 (ns time-management-api.handler
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
+            [compojure.coercions :refer [as-int]]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
             [ring.middleware.json :refer [wrap-json-response wrap-json-body]]
             [ring.adapter.jetty :refer [run-jetty]]
@@ -22,7 +23,13 @@
 (defroutes authenticated-only-routes
   (GET "/time-sheet" {{:keys [user]} :identity}
     (let [db (datomic/user-db user)]
-      (ok {:time-sheet-entries (queries/get-timesheet-entries db)}))))
+      (ok {:time-sheet-entries (queries/get-timesheet-entries db)})))
+  (DELETE "/time-sheet/:id" [id :<< as-int :as {{:keys [user]} :identity}]
+    (let [db (datomic/user-db user)]
+      (if (some? (queries/get-timesheet-entry db id))
+        (do @(d/transact datomic/conn [[:db.fn/retractEntity id]])
+            (ok {:deleted id}))
+        (not-found {:error (str "No time-sheet entry with id " id)})))))
 
 (defroutes app-routes
   (GET "/health-check" [] (ok {:healthy true}))

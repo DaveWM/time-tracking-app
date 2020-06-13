@@ -16,3 +16,9 @@
   (d/q '[:find [(pull ?e [:db/id :entry/description :entry/start :entry/duration]) ...]
          :where [?e :entry/description]]
        db))
+
+(defn get-timesheet-entry [db id]
+  (d/q '[:find (pull ?e [:db/id :entry/description :entry/start :entry/duration]) .
+         :in $ ?e
+         :where [?e :entry/description]]
+       db id))
