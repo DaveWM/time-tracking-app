@@ -13,6 +13,6 @@
 
 
 (defn get-timesheet-entries [db]
-  (d/q '[:find [(pull ?e [:entry/description :entry/start :entry/duration]) ...]
+  (d/q '[:find [(pull ?e [:db/id :entry/description :entry/start :entry/duration]) ...]
          :where [?e :entry/description]]
        db))
