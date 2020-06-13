@@ -1,2 +1,5 @@
 {:port #long #or [#env API_PORT "8081"]
- :auth-secret #env AUTH_SECRET}
+ :auth-secret #env AUTH_SECRET
+ :datomic/db-uri #or [#env DATOMIC_URI
+                      "datomic:dev://localhost:4334/toptal"]
+ }

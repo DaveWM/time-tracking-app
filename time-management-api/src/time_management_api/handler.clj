@@ -4,16 +4,20 @@
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
             [ring.middleware.json :refer [wrap-json-response wrap-json-body]]
             [ring.adapter.jetty :refer [run-jetty]]
-            [ring.util.http-response :refer [ok bad-request unauthorized]]
+            [ring.util.http-response :refer [ok bad-request unauthorized not-found]]
             [mount.core :refer [defstate]]
             [clojure.spec.alpha :as s]
             [clj-time.core :as time]
             [buddy.sign.jwt :as jwt]
             [buddy.auth]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
+            [buddy.hashers]
+            [datomic.api :as d]
             [time-management-api.specs :as specs]
             [time-management-api.auth :as auth]
-            [time-management-api.config :refer [config]]))
+            [time-management-api.config :refer [config]]
+            [time-management-api.datomic :as datomic]
+            [time-management-api.queries :as queries]))
 
 (defroutes app-routes
 
@@ -22,17 +26,26 @@
 
   (POST "/users" {{:keys [email password] :as body} :body}
     (if (s/valid? :request/create-user body)
-      (let [token (auth/create-token email)]
-        (ok {:email email
-             :token token}))
+      (if (nil? (queries/get-user-by-email (d/db datomic/conn) email))
+        (do @(d/transact datomic/conn (datomic/->transactions {:db/id "new"
+                                                               :user/email email
+                                                               :user/password (buddy.hashers/derive password)
+                                                               :user/role :role/user}))
+            (ok {:email email
+                 :token (auth/create-token email)}))
+        (bad-request {:error (str "There is already a user with email " email)}))
       (bad-request {:error (phrase.alpha/phrase-first {} :request/create-user body)})))
 
   (POST "/login" request
     (if (s/valid? :request/login (:body request))
       (let [{:keys [email password]} (:body request)
-            token (auth/create-token email)]
-        (ok {:email email
-             :token token}))
+            existing-user (queries/get-user-by-email (d/db datomic/conn) email)]
+        (if (and (some? existing-user) (buddy.hashers/check password (:user/password existing-user)))
+          (ok {:email email
+               :roles (:user/role existing-user)
+               :token (auth/create-token email)})
+          ;; return a 404 if password isn't correct - don't want to give away that the user exists
+          (not-found {:error "Email doesn't exist, or password isn't correct"})))
       (bad-request {:error (phrase.alpha/phrase-first {} :request/create-user (:body request))})))
 
   (GET "/time-sheet" request
