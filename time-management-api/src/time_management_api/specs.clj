@@ -30,6 +30,7 @@
 (s/def :request/create-user
   (s/keys :req-un [::email
                    ::password]))
+(s/def :request/login :request/create-user)
 
 
 (defphraser #(contains? % key)
