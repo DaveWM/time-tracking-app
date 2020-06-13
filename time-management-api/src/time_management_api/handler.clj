@@ -17,6 +17,9 @@
 
 (defroutes app-routes
 
+  (GET "/health-check" [] (ok {:healthy true}))
+
+
   (POST "/users" {{:keys [email password] :as body} :body}
     (if (s/valid? :request/create-user body)
       (let [token (auth/create-token email)]
