@@ -7,6 +7,7 @@
             [ring.adapter.jetty :refer [run-jetty]]
             [ring.util.http-response :refer [ok bad-request unauthorized not-found]]
             [ring.middleware.cors :refer [wrap-cors]]
+            [ring.logger :refer [wrap-with-logger]]
             [mount.core :refer [defstate]]
             [clojure.spec.alpha :as s]
             [buddy.auth]
@@ -107,7 +108,8 @@
       (wrap-json-response)
       (wrap-json-body {:keywords? true :bigdecimals? true})
       (wrap-cors :access-control-allow-origin [#".*"]
-                 :access-control-allow-methods [:get :put :post :delete])))
+                 :access-control-allow-methods [:get :put :post :delete])
+      (wrap-with-logger)))
 
 (defstate server
           :start (run-jetty app {:join? false :port (:port config)})
