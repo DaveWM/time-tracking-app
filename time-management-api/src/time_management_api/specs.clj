@@ -51,6 +51,7 @@
   (s/keys :req-un [:entry/description
                    :entry/start
                    :entry/duration]))
+(s/def :request/update-time-sheet-entry :request/create-time-sheet-entry)
 
 
 (defphraser #(contains? % key)

@@ -25,30 +25,45 @@
 (defroutes authenticated-only-routes
   (context "/" []
     (context "/time-sheet" []
-      (GET "/" {{:keys [user]} :identity}
-        (let [db (datomic/user-db user)]
+      (GET "/" {{:keys [user-id]} :identity}
+        (let [db (datomic/user-db user-id)]
           (ok {:time-sheet-entries (queries/get-timesheet-entries db)})))
 
       (POST "/" {{:keys [description start duration] :as body} :body
-                 {:keys [user]} :identity}
+                 {:keys [user-id]} :identity}
         (u/with-spec
           body :request/create-time-sheet-entry
-          (let [entry {:db/id "new"
-                       :entry/description description
-                       :entry/start (tc/to-date (tc/from-string start))
-                       :entry/duration duration
-                       :user/email user}
+          (let [entry  {:db/id "new"
+                        :entry/description description
+                        :entry/start (tc/to-date (tc/from-string start))
+                        :entry/duration duration
+                        :user/id user-id}
                 result @(d/transact datomic/conn (datomic/->transactions entry))]
             (ok (-> entry
                     (update :db/id (:tempids result))
-                    (dissoc :user/email))))))
+                    (dissoc :user/id))))))
 
-      (DELETE "/:id" [id :<< as-int :as {{:keys [user]} :identity}]
-        (let [db (datomic/user-db user)]
+      (PUT "/:id" [id :<< as-int :as {{:keys [user-id]} :identity
+                                      {:keys [description start duration] :as body} :body}]
+        (u/with-spec body :request/update-time-sheet-entry
+          (let [db              (datomic/user-db user-id)
+                entry           {:db/id id
+                                 :entry/description description
+                                 :entry/start (tc/to-date (tc/from-string start))
+                                 :entry/duration duration
+                                 :user/id user-id}
+                existing-entity (queries/get-timesheet-entry db id)]
+            (if (some? existing-entity)
+              (do @(d/transact datomic/conn (datomic/->transactions entry existing-entity))
+                  (ok (dissoc entry :user/id)))
+              (not-found {:error (str "No time sheet entry with id " id)})))))
+
+      (DELETE "/:id" [id :<< as-int :as {{:keys [user-id]} :identity}]
+        (let [db (datomic/user-db user-id)]
           (if (some? (queries/get-timesheet-entry db id))
             (do @(d/transact datomic/conn [[:db.fn/retractEntity id]])
                 (ok {:deleted id}))
-            (not-found {:error (str "No time-sheet entry with id " id)})))))))
+            (not-found {:error (str "No time sheet entry with id " id)})))))))
 
 (defroutes app-routes
   (GET "/health-check" [] (ok {:healthy true}))
@@ -56,12 +71,12 @@
   (POST "/users" {{:keys [email password] :as body} :body}
     (if (s/valid? :request/create-user body)
       (if (nil? (queries/get-user-by-email (d/db datomic/conn) email))
-        (do @(d/transact datomic/conn (datomic/->transactions {:db/id "new"
-                                                               :user/email email
-                                                               :user/password (buddy.hashers/derive password)
-                                                               :user/role :role/user}))
-            (ok {:email email
-                 :token (auth/create-token email)}))
+        (let [result @(d/transact datomic/conn (datomic/->transactions {:db/id "new"
+                                                                        :user/email email
+                                                                        :user/password (buddy.hashers/derive password)
+                                                                        :user/role :role/user}))]
+          (ok {:email email
+               :token (auth/create-token (get-in result [:tempids "new"]) email)}))
         (bad-request {:error (str "There is already a user with email " email)}))
       (bad-request {:error (phrase.alpha/phrase-first {} :request/create-user body)})))
 
@@ -72,7 +87,7 @@
         (if (and (some? existing-user) (buddy.hashers/check password (:user/password existing-user)))
           (ok {:email email
                :roles (:user/role existing-user)
-               :token (auth/create-token email)})
+               :token (auth/create-token (:db/id existing-user) email)})
           ;; return a 404 if password isn't correct - don't want to give away that the user exists
           (not-found {:error "Email doesn't exist, or password isn't correct"})))
       (bad-request {:error (phrase.alpha/phrase-first {} :request/create-user (:body request))})))

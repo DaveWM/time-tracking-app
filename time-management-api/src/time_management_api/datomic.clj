@@ -4,7 +4,10 @@
             [time-management-api.config :refer [config]]))
 
 (def schema
-  [{:db/ident :user/email
+  [{:db/ident :user/id
+    :db/valueType :db.type/ref
+    :db/cardinality :db.cardinality/one}
+   {:db/ident :user/email
     :db/valueType :db.type/string
     :db/cardinality :db.cardinality/one
     :db/unique :db.unique/identity}
@@ -39,13 +42,14 @@
           :stop (.release conn))
 
 
-(defn user-db [user-email]
+(defn user-db [user-id]
   (d/filter (d/db conn)
             (fn [db datom]
               (let [entity-user-id (-> (d/entity db (:e datom))
-                                       :user/email)]
+                                       :user/id)]
                 (or (nil? entity-user-id)
-                    (= entity-user-id user-email))))))
+                    (= entity-user-id user-id)
+                    (= (:e datom) user-id))))))
 
 
 (defn ->transactions
@@ -76,12 +80,12 @@
   (require 'buddy.hashers)
   ;; Insert some example data
   @(d/transact conn [[:db/add "new" :user/email "mail@davemartin.me"]
-                    [:db/add "new" :user/password (buddy.hashers/derive "password1")]
-                    [:db/add "new" :user/role :role/user]
-                    [:db/add "new" :user/role :role/manager]])
+                     [:db/add "new" :user/password (buddy.hashers/derive "password1")]
+                     [:db/add "new" :user/role :role/user]
+                     [:db/add "new" :user/role :role/manager]])
 
   @(d/transact conn [[:db/add "entry" :entry/description "First entry"]
                      [:db/add "entry" :entry/start (java.util.Date.)]
                      [:db/add "entry" :entry/duration 3600000]
-                     [:db/add "entry" :user/email "mail@davemartin.me"]])
+                     [:db/add "entry" :user/id [:user/email "mail@davemartin.me"]]])
   )
