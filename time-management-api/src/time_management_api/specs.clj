@@ -1,7 +1,8 @@
 (ns time-management-api.specs
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [phrase.alpha :refer [defphraser]]))
+            [phrase.alpha :refer [defphraser]]
+            [clj-time.coerce :as tc]))
 
 (def email-regex
   "Regex that matches all valid emails, copied from https://emailregex.com"
@@ -27,10 +28,29 @@
   (str "Password must contain at least " num-numbers " number(s)."))
 
 
+(s/def :entry/description string?)
+
+(s/def :entry/start (s/and string? tc/from-string))
+(defphraser tc/from-string
+  [_ {:keys [val]}]
+  (str val " is not a valid date."))
+
+(s/def :entry/duration pos-int?)
+(defphraser pos-int?
+  {:via [:entry/duration]}
+  [_ {:keys [val]}]
+  (str val " is not a valid duration. It should be an integer above 0."))
+
+
 (s/def :request/create-user
   (s/keys :req-un [::email
                    ::password]))
 (s/def :request/login :request/create-user)
+
+(s/def :request/create-time-sheet-entry
+  (s/keys :req-un [:entry/description
+                   :entry/start
+                   :entry/duration]))
 
 
 (defphraser #(contains? % key)
@@ -39,5 +59,5 @@
 
 (defphraser :default
   [_ problem]
-  (str (or (:val problem) "Nil") " is not a valid value for the " (first (:in problem)) " field."))
+  (str (or (:val problem) "nil") " is not a valid value for the " (first (:in problem)) " field."))
 

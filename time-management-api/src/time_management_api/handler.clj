@@ -13,23 +13,42 @@
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
             [buddy.hashers]
             [datomic.api :as d]
+            [clj-time.coerce :as tc]
             [time-management-api.specs :as specs]
             [time-management-api.auth :as auth]
             [time-management-api.config :refer [config]]
             [time-management-api.datomic :as datomic]
             [time-management-api.queries :as queries]
-            [time-management-api.middleware :as mw]))
+            [time-management-api.middleware :as mw]
+            [time-management-api.utils :as u]))
 
 (defroutes authenticated-only-routes
-  (GET "/time-sheet" {{:keys [user]} :identity}
-    (let [db (datomic/user-db user)]
-      (ok {:time-sheet-entries (queries/get-timesheet-entries db)})))
-  (DELETE "/time-sheet/:id" [id :<< as-int :as {{:keys [user]} :identity}]
-    (let [db (datomic/user-db user)]
-      (if (some? (queries/get-timesheet-entry db id))
-        (do @(d/transact datomic/conn [[:db.fn/retractEntity id]])
-            (ok {:deleted id}))
-        (not-found {:error (str "No time-sheet entry with id " id)})))))
+  (context "/" []
+    (context "/time-sheet" []
+      (GET "/" {{:keys [user]} :identity}
+        (let [db (datomic/user-db user)]
+          (ok {:time-sheet-entries (queries/get-timesheet-entries db)})))
+
+      (POST "/" {{:keys [description start duration] :as body} :body
+                 {:keys [user]} :identity}
+        (u/with-spec
+          body :request/create-time-sheet-entry
+          (let [entry {:db/id "new"
+                       :entry/description description
+                       :entry/start (tc/to-date (tc/from-string start))
+                       :entry/duration duration
+                       :user/email user}
+                result @(d/transact datomic/conn (datomic/->transactions entry))]
+            (ok (-> entry
+                    (update :db/id (:tempids result))
+                    (dissoc :user/email))))))
+
+      (DELETE "/:id" [id :<< as-int :as {{:keys [user]} :identity}]
+        (let [db (datomic/user-db user)]
+          (if (some? (queries/get-timesheet-entry db id))
+            (do @(d/transact datomic/conn [[:db.fn/retractEntity id]])
+                (ok {:deleted id}))
+            (not-found {:error (str "No time-sheet entry with id " id)})))))))
 
 (defroutes app-routes
   (GET "/health-check" [] (ok {:healthy true}))
