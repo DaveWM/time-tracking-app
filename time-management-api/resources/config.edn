@@ -1,0 +1,2 @@
+{:port #long #or [#env API_PORT "8081"]
+ :auth-secret #env AUTH_SECRET}

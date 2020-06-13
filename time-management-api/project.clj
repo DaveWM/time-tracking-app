@@ -9,7 +9,8 @@
                  [mount "0.1.16"]
                  [metosin/ring-http-response "0.9.1"]
                  [phrase "0.3-alpha4"]
-                 [buddy/buddy-auth "2.2.0"]]
+                 [buddy/buddy-auth "2.2.0"]
+                 [aero "1.1.6"]]
   :plugins [[lein-ring "0.12.5"]]
   :ring {:handler time-management-api.handler/app}
   :profiles

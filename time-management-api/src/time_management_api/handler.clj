@@ -7,12 +7,13 @@
             [ring.util.http-response :refer [ok bad-request unauthorized]]
             [mount.core :refer [defstate]]
             [clojure.spec.alpha :as s]
-            [time-management-api.specs :as specs]
-            [time-management-api.auth :as auth]
             [clj-time.core :as time]
             [buddy.sign.jwt :as jwt]
             [buddy.auth]
-            [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]))
+            [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
+            [time-management-api.specs :as specs]
+            [time-management-api.auth :as auth]
+            [time-management-api.config :refer [config]]))
 
 (defroutes app-routes
 
@@ -47,7 +48,7 @@
       (wrap-json-body {:keywords? true :bigdecimals? true})))
 
 (defstate server
-          :start (run-jetty app {:join? false :port 8080})
+          :start (run-jetty app {:join? false :port (:port config)})
           :stop (.stop server))
 
 (defn -main [& args]
