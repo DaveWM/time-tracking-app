@@ -6,6 +6,7 @@
                  [compojure "1.6.1"]
                  [ring/ring-defaults "0.3.2"]
                  [ring/ring-json "0.5.0"]
+                 [ring-cors "0.1.13"]
                  [mount "0.1.16"]
                  [metosin/ring-http-response "0.9.1"]
                  [phrase "0.3-alpha4"]

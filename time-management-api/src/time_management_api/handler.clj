@@ -5,10 +5,9 @@
             [ring.middleware.json :refer [wrap-json-response wrap-json-body]]
             [ring.adapter.jetty :refer [run-jetty]]
             [ring.util.http-response :refer [ok bad-request unauthorized not-found]]
+            [ring.middleware.cors :refer [wrap-cors]]
             [mount.core :refer [defstate]]
             [clojure.spec.alpha :as s]
-            [clj-time.core :as time]
-            [buddy.sign.jwt :as jwt]
             [buddy.auth]
             [buddy.auth.middleware :refer [wrap-authentication wrap-authorization]]
             [buddy.hashers]
@@ -48,6 +47,7 @@
           (not-found {:error "Email doesn't exist, or password isn't correct"})))
       (bad-request {:error (phrase.alpha/phrase-first {} :request/create-user (:body request))})))
 
+
   (GET "/time-sheet" request
     (if-not (buddy.auth/authenticated? request)
       (buddy.auth/throw-unauthorized)
@@ -61,7 +61,9 @@
       (wrap-authorization auth/auth-backend)
       (wrap-authentication auth/auth-backend)
       (wrap-json-response)
-      (wrap-json-body {:keywords? true :bigdecimals? true})))
+      (wrap-json-body {:keywords? true :bigdecimals? true})
+      (wrap-cors :access-control-allow-origin [#".*"]
+                 :access-control-allow-methods [:get :put :post :delete])))
 
 (defstate server
           :start (run-jetty app {:join? false :port (:port config)})
