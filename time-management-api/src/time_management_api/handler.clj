@@ -16,7 +16,8 @@
             [time-management-api.auth :as auth]
             [time-management-api.config :refer [config]]
             [time-management-api.datomic :as datomic]
-            [time-management-api.queries :as queries]))
+            [time-management-api.queries :as queries]
+            [time-management-api.middleware :as mw]))
 
 (defroutes authenticated-only-routes
   (GET "/time-sheet" {{:keys [user]} :identity}
@@ -52,7 +53,7 @@
 
   (wrap-routes authenticated-only-routes
                #(-> %
-                    auth/wrap-auth-check
+                    mw/wrap-auth-check
                     (wrap-authorization auth/auth-backend)
                     (wrap-authentication auth/auth-backend)))
 
@@ -60,6 +61,7 @@
 
 (def app
   (-> app-routes
+      (mw/wrap-exception-handling)
       (wrap-defaults api-defaults)
       (wrap-json-response)
       (wrap-json-body {:keywords? true :bigdecimals? true})

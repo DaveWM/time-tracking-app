@@ -2,7 +2,6 @@
   (:require [clj-time.core :as time]
             [buddy.sign.jwt :as jwt]
             [buddy.auth.backends.token :refer [jws-backend]]
-            [ring.util.http-response :refer [ok bad-request unauthorized]]
             [time-management-api.config :refer [config]]))
 
 (def token-options
@@ -16,12 +15,4 @@
 
 (def auth-backend
   (jws-backend {:secret (:auth-secret config)
-                :options token-options
-                :unauthorized-handler (constantly
-                                        (unauthorized {:error "Authentication token is missing or invalid"}))}))
-
-(defn wrap-auth-check [handler]
-  (fn [request]
-    (if-not (buddy.auth/authenticated? request)
-      (buddy.auth/throw-unauthorized)
-      (handler request))))
+                :options token-options}))
