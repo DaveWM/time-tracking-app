@@ -19,3 +19,9 @@
                 :options token-options
                 :unauthorized-handler (constantly
                                         (unauthorized {:error "Authentication token is missing or invalid"}))}))
+
+(defn wrap-auth-check [handler]
+  (fn [request]
+    (if-not (buddy.auth/authenticated? request)
+      (buddy.auth/throw-unauthorized)
+      (handler request))))

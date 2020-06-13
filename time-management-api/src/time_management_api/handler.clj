@@ -18,10 +18,13 @@
             [time-management-api.datomic :as datomic]
             [time-management-api.queries :as queries]))
 
+(defroutes authenticated-only-routes
+  (GET "/time-sheet" {{:keys [user]} :identity}
+    (let [db (datomic/user-db user)]
+      (ok {:time-sheet-entries (queries/get-timesheet-entries db)}))))
+
 (defroutes app-routes
-
   (GET "/health-check" [] (ok {:healthy true}))
-
 
   (POST "/users" {{:keys [email password] :as body} :body}
     (if (s/valid? :request/create-user body)
@@ -47,19 +50,17 @@
           (not-found {:error "Email doesn't exist, or password isn't correct"})))
       (bad-request {:error (phrase.alpha/phrase-first {} :request/create-user (:body request))})))
 
-
-  (GET "/time-sheet" request
-    (if-not (buddy.auth/authenticated? request)
-      (buddy.auth/throw-unauthorized)
-      (ok {:time-sheet []})))
+  (wrap-routes authenticated-only-routes
+               #(-> %
+                    auth/wrap-auth-check
+                    (wrap-authorization auth/auth-backend)
+                    (wrap-authentication auth/auth-backend)))
 
   (route/not-found {:error "Route not found"}))
 
 (def app
   (-> app-routes
       (wrap-defaults api-defaults)
-      (wrap-authorization auth/auth-backend)
-      (wrap-authentication auth/auth-backend)
       (wrap-json-response)
       (wrap-json-body {:keywords? true :bigdecimals? true})
       (wrap-cors :access-control-allow-origin [#".*"]

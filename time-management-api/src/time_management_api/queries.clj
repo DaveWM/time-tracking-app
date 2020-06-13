@@ -10,3 +10,9 @@
              [?e :user/email ?email]]
            db email)
       (u/update-when :user/role (partial map :db/ident))))
+
+
+(defn get-timesheet-entries [db]
+  (d/q '[:find [(pull ?e [:entry/description :entry/start :entry/duration]) ...]
+         :where [?e :entry/description]]
+       db))

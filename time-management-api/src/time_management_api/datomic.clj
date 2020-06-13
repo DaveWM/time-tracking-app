@@ -16,7 +16,18 @@
     :db/cardinality :db.cardinality/many}
    {:db/ident :role/user}
    {:db/ident :role/manager}
-   {:db/ident :role/admin}])
+   {:db/ident :role/admin}
+
+   {:db/ident :entry/description
+    :db/valueType :db.type/string
+    :db/cardinality :db.cardinality/one}
+   {:db/ident :entry/start
+    :db/valueType :db.type/instant
+    :db/cardinality :db.cardinality/one}
+   {:db/ident :entry/duration
+    :db/valueType :db.type/long
+    :db/cardinality :db.cardinality/one
+    :db/doc "The duration of the entry in milliseconds"}])
 
 
 (defstate conn
@@ -28,13 +39,13 @@
           :stop (.release conn))
 
 
-(defn user-db [user-id]
+(defn user-db [user-email]
   (d/filter (d/db conn)
             (fn [db datom]
               (let [entity-user-id (-> (d/entity db (:e datom))
                                        :user/email)]
                 (or (nil? entity-user-id)
-                    (= entity-user-id user-id))))))
+                    (= entity-user-id user-email))))))
 
 
 (defn ->transactions
@@ -62,9 +73,15 @@
 
 
 (comment
+  (require 'buddy.hashers)
   ;; Insert some example data
   @(d/transact conn [[:db/add "new" :user/email "mail@davemartin.me"]
-                    [:db/add "new" :user/password "fake"]
+                    [:db/add "new" :user/password (buddy.hashers/derive "password1")]
                     [:db/add "new" :user/role :role/user]
                     [:db/add "new" :user/role :role/manager]])
+
+  @(d/transact conn [[:db/add "entry" :entry/description "First entry"]
+                     [:db/add "entry" :entry/start (java.util.Date.)]
+                     [:db/add "entry" :entry/duration 3600000]
+                     [:db/add "entry" :user/email "mail@davemartin.me"]])
   )
