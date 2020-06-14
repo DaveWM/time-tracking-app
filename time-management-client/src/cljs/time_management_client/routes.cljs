@@ -25,6 +25,12 @@
     (re-frame/dispatch [::events/set-page :home])
     )
 
+  (defroute "/login" []
+    (re-frame/dispatch [::events/set-page :login]))
+
+  (defroute "/register" []
+    (re-frame/dispatch [::events/set-page :register]))
+
 
   ;; --------------------
   (hook-browser-navigation!))

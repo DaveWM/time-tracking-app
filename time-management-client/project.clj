@@ -5,9 +5,10 @@
                                org.clojure/google-closure-library
                                org.clojure/google-closure-library-third-party]]
                  [thheller/shadow-cljs "2.9.3"]
-                 [reagent "0.10.0"]
-                 [re-frame "0.12.0"]
+                 [reagent "1.0.0-alpha2"]
+                 [re-frame "1.0.0-rc2"]
                  [day8.re-frame/tracing "0.5.5"]
+                 [day8.re-frame/http-fx "v0.2.0"]
                  [clj-commons/secretary "1.2.4"]]
 
   :plugins [[lein-shadow "0.2.0"]
@@ -41,7 +42,8 @@
                                                :preloads [devtools.preload
                                                           day8.re-frame-10x.preload]}}
                                :dev {:compiler-options {:closure-defines {re-frame.trace.trace-enabled? true
-                                                                          day8.re-frame.tracing.trace-enabled? true}}}
+                                                                          day8.re-frame.tracing.trace-enabled? true
+                                                                          time-management-client.config/api-url "http://localhost:8081"}}}
                                :release {:build-options
                                          {:ns-aliases
                                           {day8.re-frame.tracing day8.re-frame.tracing-stubs}}}
