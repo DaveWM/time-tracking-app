@@ -1,7 +1,7 @@
 (ns time-management-api.handler-test
   (:require [clojure.test :refer :all]
             [ring.mock.request :as mock]
-            [time-management-api.handler :refer :all]))
+            [time-management-api.core :refer :all]))
 
 (deftest test-app
   (testing "main route"

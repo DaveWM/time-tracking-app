@@ -1,4 +1,4 @@
-(ns time-management-api.handler
+(ns time-management-api.core
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [compojure.coercions :refer [as-int]]
