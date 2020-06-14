@@ -90,3 +90,10 @@
   (fn-traced [db [_ {:keys [time-sheet-entries]}]]
     (assoc db :time-sheet-entries time-sheet-entries
               :loading false)))
+
+(re-frame/reg-event-fx
+  ::logout
+  (fn-traced [{:keys [db]} _]
+    {:db (assoc db :auth-token nil)
+     ::effects/set-token nil
+     ::effects/navigate-to "/login"}))

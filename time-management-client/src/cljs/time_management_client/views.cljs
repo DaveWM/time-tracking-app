@@ -102,9 +102,14 @@
   (let [page  (re-frame/subscribe [::subs/page])
         error (re-frame/subscribe [::subs/error])]
     [:div
-     [:div#navbar.uk-navbar-container
+     [:div#navbar.uk-navbar-container {"uk-navbar" "true"}
       [:div.uk-navbar-left
-       [:h1.uk-navbar-item.uk-logo "Time Management App"]]]
+       [:a.uk-navbar-item.uk-logo
+        {:href "/"}
+        "Time Management App"]]
+      [:div.uk-navbar-right
+       [:div:div.uk-navbar-item
+        [:button.uk-button.uk-button-primary {:on-click #(re-frame/dispatch [::events/logout])} "Log out"]]]]
      [:div.uk-section
       [:div.uk-container.uk-container-large
        (when @error [:div.uk-alert-danger {"uk-alert" ""}
