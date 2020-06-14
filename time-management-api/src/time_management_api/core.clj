@@ -69,7 +69,7 @@
 (defroutes app-routes
   (GET "/health-check" [] (ok {:healthy true}))
 
-  (POST "/users" {{:keys [email password] :as body} :body}
+  (POST "/register" {{:keys [email password] :as body} :body}
     (if (s/valid? :request/create-user body)
       (if (nil? (queries/get-user-by-email (d/db datomic/conn) email))
         (let [result @(d/transact datomic/conn (datomic/->transactions {:db/id "new"
