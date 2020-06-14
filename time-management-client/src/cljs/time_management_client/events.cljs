@@ -14,14 +14,15 @@
   (fn-traced [{:keys [auth-token]} _]
     {:db (assoc db/default-db :auth-token auth-token)}))
 
-(re-frame/reg-event-db
+(re-frame/reg-event-fx
   ::set-page
-  (fn-traced [db [_ page]]
+  (fn-traced [{:keys [db]} [_ page]]
     (let [non-auth-pages #{:login :register}]
       (if (or (some? (:auth-token db))
               (contains? non-auth-pages page))
-        (assoc db :page page)
-        (assoc db :page :login)))))
+        {:db (assoc db :page page)}
+        {:db db
+         ::effects/navigate-to "/login"}))))
 
 
 (re-frame/reg-event-fx
