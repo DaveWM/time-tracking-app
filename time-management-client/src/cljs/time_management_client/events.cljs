@@ -8,6 +8,20 @@
     [time-management-client.coeffects :as coeffects]
     [time-management-client.config :as config]))
 
+(defn auth-header [token]
+  [:Authorization (str "Token " token)])
+
+(defn effects-on-page-load [page db]
+  (case page
+    :home {:db (assoc db :loading true)
+           :http-xhrio {:method :get
+                        :uri (str config/api-url "/time-sheet")
+                        :response-format (ajax/json-response-format {:keywords? true})
+                        :headers (auth-header (:auth-token db))
+                        :on-success [::received-time-sheet]
+                        :on-failure [::request-failed]}}
+    nil))
+
 (re-frame/reg-event-fx
   ::initialize-db
   [(re-frame/inject-cofx ::coeffects/auth-token)]
@@ -20,7 +34,8 @@
     (let [non-auth-pages #{:login :register}]
       (if (or (some? (:auth-token db))
               (contains? non-auth-pages page))
-        {:db (assoc db :page page)}
+        (-> (effects-on-page-load page db)
+            (assoc-in [:db :page] page))
         {:db db
          ::effects/navigate-to "/login"}))))
 
@@ -35,7 +50,7 @@
                   :format (ajax/json-request-format)
                   :response-format (ajax/json-response-format {:keywords? true})
                   :on-success [::login-success]
-                  :on-failure [::login-failed]}}))
+                  :on-failure [::request-failed]}}))
 
 (re-frame/reg-event-fx
   ::login
@@ -47,7 +62,7 @@
                   :format (ajax/json-request-format)
                   :response-format (ajax/json-response-format {:keywords? true})
                   :on-success [::login-success]
-                  :on-failure [::login-failed]}}))
+                  :on-failure [::request-failed]}}))
 
 
 (re-frame/reg-event-fx
@@ -60,9 +75,18 @@
      ::effects/set-token (:token response)
      ::effects/navigate-to "/"}))
 
+(re-frame/reg-event-fx
+  ::request-failed
+  (fn-traced [{:keys [db]} [_ {:keys [response status]}]]
+    (merge
+      {:db (-> db
+               (assoc :loading false)
+               (assoc :error (:error response)))}
+      (when (#{401 403} status)
+        {::effects/navigate-to "/login"}))))
+
 (re-frame/reg-event-db
-  ::login-failed
-  (fn-traced [db [_ {:keys [response]}]]
-    (-> db
-        (assoc :loading false)
-        (assoc :error (:error response)))))
+  ::received-time-sheet
+  (fn-traced [db [_ {:keys [time-sheet-entries]}]]
+    (assoc db :time-sheet-entries time-sheet-entries
+              :loading false)))

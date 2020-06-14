@@ -9,8 +9,14 @@
 ;; home
 
 (defn home-page []
-  [:div
-   "Hello!"])
+  (let [time-sheet-entries (re-frame/subscribe [::subs/time-sheet-entries])
+        loading            (re-frame/subscribe [::subs/loading])]
+    (if @loading
+      [:div {"uk-spinner" "ratio: 2"}]
+      [:ul.uk-list.uk-list-divider
+       (->> @time-sheet-entries
+            (map (fn [entry]
+                   [:li (str (:entry/description entry) " at " (:entry/start entry) ", for " (:entry/duration entry) " millis.")])))])))
 
 
 
@@ -67,8 +73,8 @@
    :register [register-page]
    :not-found [:p "Page not found!"]})
 
-(defn show-page [panel-name]
-  [pages panel-name])
+(defn show-page [page-name]
+  [pages page-name])
 
 (defn main-panel []
   (let [page  (re-frame/subscribe [::subs/page])
