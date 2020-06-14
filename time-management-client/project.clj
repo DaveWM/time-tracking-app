@@ -9,7 +9,8 @@
                  [re-frame "1.0.0-rc2"]
                  [day8.re-frame/tracing "0.5.5"]
                  [day8.re-frame/http-fx "v0.2.0"]
-                 [clj-commons/secretary "1.2.4"]]
+                 [kibu/pushy "0.3.8"]
+                 [bidi "2.1.6"]]
 
   :plugins [[lein-shadow "0.2.0"]
             

@@ -1,36 +1,23 @@
 (ns time-management-client.routes
-  (:require-macros [secretary.core :refer [defroute]])
-  (:import [goog History]
-           [goog.history EventType])
   (:require
-   [secretary.core :as secretary]
-   [goog.events :as gevents]
-   [re-frame.core :as re-frame]
-   [time-management-client.events :as events]
-   ))
+    [bidi.bidi :as bidi]
+    [pushy.core :as pushy]
+    [re-frame.core :as re-frame]))
 
-(defn hook-browser-navigation! []
-  (doto (History.)
-    (gevents/listen
-     EventType/NAVIGATE
-     (fn [event]
-       (secretary/dispatch! (.-token event))))
-    (.setEnabled true)))
+(def app-routes
+  ["/" {"" :home
+        "login" :login
+        "register" :register}
+   true :not-found])
 
-(defn app-routes []
-  (secretary/set-config! :prefix "#")
-  ;; --------------------
-  ;; define routes here
-  (defroute "/" []
-    (re-frame/dispatch [::events/set-page :home])
-    )
+(defn set-page! [match]
+  (re-frame/dispatch [:time-management-client.events/set-page (:handler match)]))
 
-  (defroute "/login" []
-    (re-frame/dispatch [::events/set-page :login]))
+(def history
+  (pushy/pushy set-page! (partial bidi/match-route app-routes)))
 
-  (defroute "/register" []
-    (re-frame/dispatch [::events/set-page :register]))
+(defn start-routing! []
+  (pushy/start! history))
 
-
-  ;; --------------------
-  (hook-browser-navigation!))
+(defn navigate-to! [url]
+  (pushy/set-token! history url))

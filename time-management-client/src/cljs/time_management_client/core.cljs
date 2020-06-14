@@ -21,7 +21,8 @@
     (rdom/render [views/main-panel] root-el)))
 
 (defn init []
-  (routes/app-routes)
+  (println "init")
+  (routes/start-routing!)
   (re-frame/dispatch-sync [::events/initialize-db])
   (dev-setup)
   (mount-root))

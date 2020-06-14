@@ -56,7 +56,8 @@
              (assoc :loading false
                     :error nil
                     :auth-token (:token response)))
-     ::effects/set-token (:token response)}))
+     ::effects/set-token (:token response)
+     ::effects/navigate-to "/"}))
 
 (re-frame/reg-event-db
   ::login-failed

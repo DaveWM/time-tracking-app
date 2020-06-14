@@ -34,7 +34,7 @@
                                              (re-frame/dispatch [::events/login {:email @email :password @password}])
                                              (.preventDefault %))}
 
-        [:a {:href "/#/register"} "Don't have an account? Click this link to register"]
+        [:a {:href "/register"} "Don't have an account? Click this link to register"]
 
         [form-input "text" "Email" email]
         [form-input "password" "Password" password]
@@ -51,7 +51,7 @@
                                              (re-frame/dispatch [::events/register {:email @email :password @password}])
                                              (.preventDefault %))}
 
-        [:a {:href "/#/login"} "Already have an account? Click this link to log in"]
+        [:a {:href "/login"} "Already have an account? Click this link to log in"]
 
         [form-input "text" "Email" email]
         [form-input "password" "Password" password]
@@ -61,12 +61,11 @@
 
 ;; main
 
-(defn pages [panel-name]
-  (case panel-name
-    :home [home-page]
-    :login [login-page]
-    :register [register-page]
-    [:p "Page not found!"]))
+(def pages
+  {:home [home-page]
+   :login [login-page]
+   :register [register-page]
+   :not-found [:p "Page not found!"]})
 
 (defn show-page [panel-name]
   [pages panel-name])
