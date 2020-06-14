@@ -3,7 +3,11 @@
     [re-frame.core :as re-frame]
     [time-management-client.subs :as subs]
     [time-management-client.events :as events]
-    [reagent.core :as r]))
+    [time-management-client.utils :as u]
+    [reagent.core :as r]
+    [cljs-time.coerce :as tc]
+    [cljs-time.format :as tf]
+    [cljs-time.core :as t]))
 
 
 ;; home
@@ -13,10 +17,28 @@
         loading            (re-frame/subscribe [::subs/loading])]
     (if @loading
       [:div {"uk-spinner" "ratio: 2"}]
-      [:ul.uk-list.uk-list-divider
+      [:div.home
        (->> @time-sheet-entries
             (map (fn [entry]
-                   [:li (str (:entry/description entry) " at " (:entry/start entry) ", for " (:entry/duration entry) " millis.")])))])))
+                   (update entry :entry/start tc/from-string)))
+            (sort-by (comp tc/to-epoch :entry/start))
+            (group-by (fn [entry]
+                        (u/days-since-epoch (:entry/start entry))))
+            (map (fn [[date-days entries]]
+                   [:div.uk-card.uk-card-body.uk-card-default.uk-margin
+                    [:h4.uk-card-title (tf/unparse (tf/formatter "do MMMM, yyyy") (u/from-days-since-epoch date-days))]
+                    [:ul.uk-list.uk-list-divider
+                     (->> entries
+                          (map (fn [{:keys [entry/start entry/duration entry/description]}]
+                                 (let [ended-at          (t/plus start (t/millis duration))
+                                       interval          (t/interval start ended-at)
+                                       started-at-string (tf/unparse (tf/formatter "HH:mm") start)
+                                       duration-string   (if (zero? (t/in-hours interval))
+                                                           (str (t/in-minutes interval) " minutes")
+                                                           (str (t/in-hours interval) " hours, " (t/in-minutes interval) " minutes"))]
+                                   [:li
+                                    [:div description]
+                                    [:div.uk-text-muted.uk-text-small (str started-at-string " for " duration-string)]]))))]])))])))
 
 
 

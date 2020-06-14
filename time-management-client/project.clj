@@ -10,7 +10,8 @@
                  [day8.re-frame/tracing "0.5.5"]
                  [day8.re-frame/http-fx "v0.2.0"]
                  [kibu/pushy "0.3.8"]
-                 [bidi "2.1.6"]]
+                 [bidi "2.1.6"]
+                 [com.andrewmcveigh/cljs-time "0.5.2"]]
 
   :plugins [[lein-shadow "0.2.0"]
             
