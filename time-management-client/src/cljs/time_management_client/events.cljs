@@ -45,7 +45,7 @@
   (fn-traced [{:keys [db]} [_ form-data]]
     {:db (assoc db :loading true)
      :http-xhrio {:method :post
-                  :uri (str config/api-url "/users")
+                  :uri (str config/api-url "/register")
                   :params form-data
                   :format (ajax/json-request-format)
                   :response-format (ajax/json-response-format {:keywords? true})
