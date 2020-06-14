@@ -7,39 +7,27 @@
 
 ;; home
 
-(defn home-panel []
-  (let [name (re-frame/subscribe [::subs/name])]
-    [:div
-     [:h1 (str "Hello from " @name ". This is the Home Page.")]
-
-     [:div
-      [:a {:href "#/about"}
-       "go to About Page"]]
-     ]))
-
-
-;; about
-
-(defn about-panel []
+(defn home-page []
   [:div
-   [:h1 "This is the About Page."]
-
-   [:div
-    [:a {:href "#/"}
-     "go to Home Page"]]])
+   "Hello!"])
 
 
 ;; main
 
-(defn- panels [panel-name]
+(defn pages [panel-name]
   (case panel-name
-    :home-panel [home-panel]
-    :about-panel [about-panel]
-    [:div]))
+    :home [home-page]
+    [:div "Page not found!"]))
 
-(defn show-panel [panel-name]
-  [panels panel-name])
+(defn show-page [panel-name]
+  [pages panel-name])
 
 (defn main-panel []
-  (let [active-panel (re-frame/subscribe [::subs/active-panel])]
-    [show-panel @active-panel]))
+  (let [page (re-frame/subscribe [::subs/page])]
+    [:div
+     [:div#navbar.uk-navbar-container
+      [:div.uk-navbar-left
+       [:h1.uk-navbar-item.uk-logo "Time Management App"]]]
+     [:div.uk-section
+      [:div.uk-container.uk-container-large
+       [show-page @page]]]]))

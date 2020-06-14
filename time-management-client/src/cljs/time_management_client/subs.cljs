@@ -3,11 +3,6 @@
    [re-frame.core :as re-frame]))
 
 (re-frame/reg-sub
- ::name
- (fn [db]
-   (:name db)))
-
-(re-frame/reg-sub
- ::active-panel
+ ::page
  (fn [db _]
-   (:active-panel db)))
+   (:page db)))

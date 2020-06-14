@@ -11,6 +11,6 @@
    db/default-db))
 
 (re-frame/reg-event-db
- ::set-active-panel
- (fn-traced [db [_ active-panel]]
-   (assoc db :active-panel active-panel)))
+ ::set-page
+ (fn-traced [db [_ page]]
+   (assoc db :page page)))
