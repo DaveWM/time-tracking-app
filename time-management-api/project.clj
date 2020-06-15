@@ -8,6 +8,7 @@
                  [ring/ring-json "0.5.0"]
                  [ring-cors "0.1.13"]
                  [ring-logger "1.0.1"]
+                 [ring/ring-jetty-adapter "1.8.1"]
                  [mount "0.1.16"]
                  [metosin/ring-http-response "0.9.1"]
                  [phrase "0.3-alpha4"]
