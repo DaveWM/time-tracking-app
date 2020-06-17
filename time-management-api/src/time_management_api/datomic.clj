@@ -46,7 +46,8 @@
   (d/filter (d/db conn)
             (fn [db datom]
               (let [entity-user-id (-> (d/entity db (:e datom))
-                                       :user/id)]
+                                       :user/id
+                                       :db/id)]
                 (or (nil? entity-user-id)
                     (= entity-user-id user-id)
                     (= (:e datom) user-id))))))
