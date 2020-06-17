@@ -38,7 +38,8 @@
                                                            (str (t/in-hours interval) " hours, " (t/in-minutes interval) " minutes"))]
                                    [:li
                                     [:div description]
-                                    [:div.uk-text-muted.uk-text-small (str started-at-string " for " duration-string)]]))))]])))])))
+                                    [:div.uk-text-muted.uk-text-small (str started-at-string " for " duration-string)]]))))]])))
+       [:a.uk-button.uk-button-primary {:href "/entries"} "New Entry"]])))
 
 
 
@@ -87,32 +88,52 @@
         [:button.uk-button.uk-button-primary "Register"]]])))
 
 
-;; main
+(defn create-entry-page []
+  (let [description (r/atom nil)
+        duration-hours (r/atom 0)
+        duration-mins (r/atom 0)
+        start (r/atom nil)]
+    [:form.uk-form-stacked {:on-submit #(do (re-frame/dispatch [::events/create-entry {:description @description
+                                                                                       :duration-hours @duration-hours
+                                                                                       :duration-mins @duration-mins
+                                                                                       :start-string @start}])
+                                            (.preventDefault %))}
+     [form-input "text" "Description" description]
+     [form-input "number" "Duration - Hours" duration-hours]
+     [form-input "number" "Duration - Minutes" duration-mins]
+     [form-input "text" "Start date/time (DD/MM/YY HH:mm)" start]
+     [:button.uk-button.uk-button-primary "Create"]]))
 
-(def pages
-  {:home [home-page]
-   :login [login-page]
-   :register [register-page]
-   :not-found [:p "Page not found!"]})
+(defn edit-entry-page [id]
+  [:p id])
 
-(defn show-page [page-name]
-  [pages page-name])
+
+(defn show-page [page-name route-params]
+  (case page-name
+    :home [home-page]
+    :login [login-page]
+    :register [register-page]
+    :create-entry [create-entry-page]
+    :edit-entry [edit-entry-page (:id route-params)]
+    :not-found [:p "Page not found!"]
+    [:div]))
 
 (defn main-panel []
-  (let [page  (re-frame/subscribe [::subs/page])
+  (let [page-sub (re-frame/subscribe [::subs/page])
         error (re-frame/subscribe [::subs/error])]
-    [:div
-     [:div#navbar.uk-navbar-container {"uk-navbar" "true"}
-      [:div.uk-navbar-left
-       [:a.uk-navbar-item.uk-logo
-        {:href "/"}
-        "Time Management App"]]
-      [:div.uk-navbar-right
-       [:div:div.uk-navbar-item
-        [:button.uk-button.uk-button-primary {:on-click #(re-frame/dispatch [::events/logout])} "Log out"]]]]
-     [:div.uk-section
-      [:div.uk-container.uk-container-large
-       (when @error [:div.uk-alert-danger {"uk-alert" ""}
-                     [:a.uk-alert-close {"uk-close" ""}]
-                     [:p @error]])
-       [show-page @page]]]]))
+    (let [{:keys [page params]} @page-sub]
+      [:div
+       [:div#navbar.uk-navbar-container {"uk-navbar" "true"}
+        [:div.uk-navbar-left
+         [:a.uk-navbar-item.uk-logo
+          {:href "/"}
+          "Time Management App"]]
+        [:div.uk-navbar-right
+         [:div.uk-navbar-item
+          [:button.uk-button.uk-button-primary {:on-click #(re-frame/dispatch [::events/logout])} "Log out"]]]]
+       [:div.uk-section
+        [:div.uk-container.uk-container-large
+         (when @error [:div.uk-alert-danger {"uk-alert" ""}
+                       [:a.uk-alert-close {"uk-close" ""}]
+                       [:p @error]])
+         [show-page page params]]]])))

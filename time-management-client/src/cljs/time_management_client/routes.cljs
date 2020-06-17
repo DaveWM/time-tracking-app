@@ -7,14 +7,18 @@
 (def app-routes
   ["/" {"" :home
         "login" :login
-        "register" :register}
+        "register" :register
+        "entries" {[:id] :edit-entry
+                   true :create-entry}}
    true :not-found])
 
 (defn set-page! [match]
-  (re-frame/dispatch [:time-management-client.events/set-page (:handler match)]))
+  (re-frame/dispatch [:time-management-client.events/set-page (:handler match) (:route-params match)]))
 
 (def history
-  (pushy/pushy set-page! (partial bidi/match-route app-routes)))
+  (pushy/pushy set-page! #(do
+                            (println % (bidi/match-route app-routes %))
+                            (bidi/match-route app-routes %))))
 
 (defn start-routing! []
   (pushy/start! history))

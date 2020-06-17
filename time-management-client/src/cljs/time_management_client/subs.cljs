@@ -5,7 +5,8 @@
 (re-frame/reg-sub
  ::page
  (fn [db _]
-   (:page db)))
+   {:page (:page db)
+    :route-params (:route-params db)}))
 
 (re-frame/reg-sub
   ::error
