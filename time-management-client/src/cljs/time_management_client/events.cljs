@@ -14,15 +14,18 @@
   [:Authorization (str "Token " token)])
 
 (defn effects-on-page-load [page db]
-  (case page
-    :home {:db (assoc db :loading true)
-           :http-xhrio {:method :get
-                        :uri (str config/api-url "/time-sheet")
-                        :response-format (ajax/json-response-format {:keywords? true})
-                        :headers (auth-header (:auth-token db))
-                        :on-success [::received-time-sheet]
-                        :on-failure [::request-failed]}}
-    nil))
+  (let [load-time-sheet-effect {:method :get
+                                :uri (str config/api-url "/time-sheet")
+                                :response-format (ajax/json-response-format {:keywords? true})
+                                :headers (auth-header (:auth-token db))
+                                :on-success [::received-time-sheet]
+                                :on-failure [::request-failed]}]
+    (case page
+      :home {:db (assoc db :loading true)
+             :http-xhrio load-time-sheet-effect}
+      :edit-entry {:db (assoc db :loading true)
+                   :http-xhrio load-time-sheet-effect}
+      nil)))
 
 (re-frame/reg-event-fx
   ::initialize-db
@@ -33,7 +36,6 @@
 (re-frame/reg-event-fx
  ::set-page
  (fn-traced [{:keys [db]} [_ page route-params]]
-   (println page route-params)
    (let [non-auth-pages #{:login :register}]
      (if (or (some? (:auth-token db))
              (contains? non-auth-pages page))
@@ -125,4 +127,32 @@
  ::entry-created
  (fn-traced [{:keys [db]} _]
    {:db db
+    ::effects/navigate-to "/"}))
+
+
+(re-frame/reg-event-fx
+ ::update-entry
+ (fn-traced [{:keys [db]} [_ {:keys [id description start-string duration-hours duration-mins]}]]
+   (let [form-data {:description description
+                    :duration (+ (* duration-mins 1000 60) (* duration-hours 1000 60 60))
+                    :start (-> (tf/parse (tf/formatter "dd/MM/yy HH:mm") start-string)
+                               (tc/to-string))}]
+     {:db (assoc db :loading true)
+      :http-xhrio {:method :put
+                   :uri (str config/api-url "/time-sheet/" id)
+                   :params form-data
+                   :format (ajax/json-request-format)
+                   :response-format (ajax/json-response-format {:keywords? true})
+                   :headers (auth-header (:auth-token db))
+                   :on-success [::entry-updated]
+                   :on-failure [::request-failed]}})))
+
+(re-frame/reg-event-fx
+ ::entry-updated
+ (fn-traced [{:keys [db]} [_ updated-entry]]
+   {:db (update db :time-sheet-entries
+                (partial map (fn [entry]
+                               (if (= (:db/id entry) (:db/id updated-entry))
+                                 updated-entry
+                                 entry))))
     ::effects/navigate-to "/"}))

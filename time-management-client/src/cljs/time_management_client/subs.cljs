@@ -6,7 +6,7 @@
  ::page
  (fn [db _]
    {:page (:page db)
-    :route-params (:route-params db)}))
+    :params (:route-params db)}))
 
 (re-frame/reg-sub
   ::error
@@ -22,3 +22,10 @@
   ::loading
   (fn [db _]
     (:loading db)))
+
+(re-frame/reg-sub
+ ::time-entry
+ (fn [db [_ id]]
+   (->> (:time-sheet-entries db)
+        (filter #(= id (:db/id %)))
+        first)))

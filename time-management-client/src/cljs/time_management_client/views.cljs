@@ -29,16 +29,19 @@
                     [:h4.uk-card-title (tf/unparse (tf/formatter "do MMMM, yyyy") (u/from-days-since-epoch date-days))]
                     [:ul.uk-list.uk-list-divider
                      (->> entries
-                          (map (fn [{:keys [entry/start entry/duration entry/description]}]
-                                 (let [ended-at          (t/plus start (t/millis duration))
-                                       interval          (t/interval start ended-at)
+                          (map (fn [{:keys [entry/start entry/duration entry/description db/id]}]
+                                 (let [ended-at (t/plus start (t/millis duration))
+                                       interval (t/interval start ended-at)
                                        started-at-string (tf/unparse (tf/formatter "HH:mm") start)
-                                       duration-string   (if (zero? (t/in-hours interval))
-                                                           (str (t/in-minutes interval) " minutes")
-                                                           (str (t/in-hours interval) " hours, " (mod (t/in-minutes interval) 60) " minutes"))]
-                                   [:li
-                                    [:div description]
-                                    [:div.uk-text-muted.uk-text-small (str started-at-string " for " duration-string)]]))))]])))
+                                       duration-string (if (zero? (t/in-hours interval))
+                                                         (str (t/in-minutes interval) " minutes")
+                                                         (str (t/in-hours interval) " hours, " (mod (t/in-minutes interval) 60) " minutes"))]
+                                   [:li.time-entry
+                                    [:div
+                                     [:div description]
+                                     [:div.uk-text-muted.uk-text-small (str started-at-string " for " duration-string)]]
+                                    [:div.time-entry__controls
+                                     [:a.uk-button.uk-button-default {:href (str "/entries/" id)} "Edit"]]]))))]])))
        [:a.uk-button.uk-button-primary {:href "/entries"} "New Entry"]])))
 
 
@@ -87,25 +90,43 @@
 
         [:button.uk-button.uk-button-primary "Register"]]])))
 
+(defn time-entry-form [id submit-btn-label submit-event {:keys [description duration-hours duration-mins start-string]}]
+  [:form.uk-form-stacked {:on-submit #(do (re-frame/dispatch [submit-event {:description @description
+                                                                            :duration-hours @duration-hours
+                                                                            :duration-mins @duration-mins
+                                                                            :start-string @start-string
+                                                                            :id id}])
+                                          (.preventDefault %))}
+   [form-input "text" "Description" description]
+   [form-input "number" "Duration - Hours" duration-hours]
+   [form-input "number" "Duration - Minutes" duration-mins]
+   [form-input "text" "Start date/time (DD/MM/YY HH:mm)" start-string]
+   [:button.uk-button.uk-button-primary submit-btn-label]])
 
 (defn create-entry-page []
   (let [description (r/atom nil)
         duration-hours (r/atom 0)
         duration-mins (r/atom 0)
-        start (r/atom nil)]
-    [:form.uk-form-stacked {:on-submit #(do (re-frame/dispatch [::events/create-entry {:description @description
-                                                                                       :duration-hours @duration-hours
-                                                                                       :duration-mins @duration-mins
-                                                                                       :start-string @start}])
-                                            (.preventDefault %))}
-     [form-input "text" "Description" description]
-     [form-input "number" "Duration - Hours" duration-hours]
-     [form-input "number" "Duration - Minutes" duration-mins]
-     [form-input "text" "Start date/time (DD/MM/YY HH:mm)" start]
-     [:button.uk-button.uk-button-primary "Create"]]))
+        start-string (r/atom nil)]
+    [time-entry-form nil "Create" ::events/create-entry {:description description
+                                                         :duration-hours duration-hours
+                                                         :duration-mins duration-mins
+                                                         :start-string start-string}]))
 
 (defn edit-entry-page [id]
-  [:p id])
+  (if-let [entry @(re-frame/subscribe [::subs/time-entry id])]
+    (let [description (r/atom (:entry/description entry))
+          duration-hours (r/atom (-> (:entry/duration entry)
+                                     (quot (* 1000 60 60))))
+          duration-mins (r/atom (-> (:entry/duration entry)
+                                    (quot (* 1000 60))
+                                    (rem 60)))
+          start-string (r/atom (tf/unparse (tf/formatter "dd/MM/yy HH:mm") (tc/from-string (:entry/start entry))))]
+      [time-entry-form id "Update" ::events/update-entry {:description description
+                                                          :duration-hours duration-hours
+                                                          :duration-mins duration-mins
+                                                          :start-string start-string}])
+    [:div {"uk-spinner" "ratio: 2"}]))
 
 
 (defn show-page [page-name route-params]
@@ -114,7 +135,7 @@
     :login [login-page]
     :register [register-page]
     :create-entry [create-entry-page]
-    :edit-entry [edit-entry-page (:id route-params)]
+    :edit-entry [edit-entry-page (js/parseInt (:id route-params))]
     :not-found [:p "Page not found!"]
     [:div]))
 
