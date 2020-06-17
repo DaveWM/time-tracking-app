@@ -111,11 +111,10 @@
 
 (re-frame/reg-event-fx
  ::create-entry
- (fn-traced [{:keys [db]} [_ {:keys [description start-string duration-hours duration-mins]}]]
+ (fn-traced [{:keys [db]} [_ {:keys [description start duration-hours duration-mins]}]]
    (let [form-data {:description description
                     :duration (+ (* duration-mins 1000 60) (* duration-hours 1000 60 60))
-                    :start (-> (tf/parse (tf/formatter "dd/MM/yy HH:mm") start-string)
-                               (tc/to-string))}]
+                    :start (tc/to-string start)}]
      {:db (assoc db :loading true)
       :http-xhrio {:method :post
                    :uri (str config/api-url "/time-sheet")
@@ -135,11 +134,10 @@
 
 (re-frame/reg-event-fx
  ::update-entry
- (fn-traced [{:keys [db]} [_ {:keys [id description start-string duration-hours duration-mins]}]]
+ (fn-traced [{:keys [db]} [_ {:keys [id description start duration-hours duration-mins]}]]
    (let [form-data {:description description
                     :duration (+ (* duration-mins 1000 60) (* duration-hours 1000 60 60))
-                    :start (-> (tf/parse (tf/formatter "dd/MM/yy HH:mm") start-string)
-                               (tc/to-string))}]
+                    :start (tc/to-string start)}]
      {:db (assoc db :loading true)
       :http-xhrio {:method :put
                    :uri (str config/api-url "/time-sheet/" id)

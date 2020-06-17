@@ -1,20 +1,22 @@
 (ns time-management-client.views
   (:require
-    [re-frame.core :as re-frame]
-    [time-management-client.subs :as subs]
-    [time-management-client.events :as events]
-    [time-management-client.utils :as u]
-    [reagent.core :as r]
-    [cljs-time.coerce :as tc]
-    [cljs-time.format :as tf]
-    [cljs-time.core :as t]))
+   [re-frame.core :as re-frame]
+   [time-management-client.subs :as subs]
+   [time-management-client.events :as events]
+   [time-management-client.utils :as u]
+   [reagent.core :as r]
+   ["react-datepicker" :default DatePicker]
+   [cljs-time.coerce :as tc]
+   [cljs-time.format :as tf]
+   [cljs-time.core :as t]))
 
 
-;; home
+(def date-picker (r/adapt-react-class DatePicker))
+
 
 (defn home-page []
   (let [time-sheet-entries (re-frame/subscribe [::subs/time-sheet-entries])
-        loading            (re-frame/subscribe [::subs/loading])]
+        loading (re-frame/subscribe [::subs/loading])]
     (if @loading
       [:div {"uk-spinner" "ratio: 2"}]
       [:div.home
@@ -51,14 +53,15 @@
 
 
 
-(defn form-input [type label value-atom]
+(defn form-input [label value-atom & [input-attrs]]
   [:div.uk-margin
    [:label.uk-form-label {:for label} label]
    [:div.uk-form-controls
-    [:input.uk-input {:type type
-                      :id label
-                      :value @value-atom
-                      :on-change #(reset! value-atom (-> % .-target .-value))}]]])
+    [:input.uk-input (merge {:type "text"
+                             :id label
+                             :value @value-atom
+                             :on-change #(reset! value-atom (-> % .-target .-value))}
+                            input-attrs)]]])
 
 
 (defn login-page []
@@ -73,8 +76,8 @@
 
         [:a {:href "/register"} "Don't have an account? Click this link to register"]
 
-        [form-input "text" "Email" email]
-        [form-input "password" "Password" password]
+        [form-input "Email" email]
+        [form-input "Password" password {:type "password"}]
 
         [:button.uk-button.uk-button-primary "Log In"]]])))
 
@@ -90,33 +93,44 @@
 
         [:a {:href "/login"} "Already have an account? Click this link to log in"]
 
-        [form-input "text" "Email" email]
-        [form-input "password" "Password" password]
+        [form-input "Email" email]
+        [form-input "Password" password {:type "password"}]
 
         [:button.uk-button.uk-button-primary "Register"]]])))
 
-(defn time-entry-form [id submit-btn-label submit-event {:keys [description duration-hours duration-mins start-string]}]
+(defn time-entry-form [id submit-btn-label submit-event {:keys [description duration-hours duration-mins start]}]
   [:form.uk-form-stacked {:on-submit #(do (re-frame/dispatch [submit-event {:description @description
                                                                             :duration-hours @duration-hours
                                                                             :duration-mins @duration-mins
-                                                                            :start-string @start-string
+                                                                            :start @start
                                                                             :id id}])
                                           (.preventDefault %))}
-   [form-input "text" "Description" description]
-   [form-input "number" "Duration - Hours" duration-hours]
-   [form-input "number" "Duration - Minutes" duration-mins]
-   [form-input "text" "Start date/time (DD/MM/YY HH:mm)" start-string]
+   [form-input "Description" description]
+   [form-input "Duration - Hours" duration-hours {:type "number"
+                                                  :min 0
+                                                  :step 1}]
+   [form-input "Duration - Minutes" duration-mins {:type "number"
+                                                   :min 0
+                                                   :max 59
+                                                   :step 1}]
+   [:div.uk-margin
+    [:label.uk-form-label {:for "start-date"} "Start"]
+    [:div.uk-form-controls
+     [date-picker {:id "start-date"
+                   :show-time-select true
+                   :selected @start
+                   :on-change #(reset! start %)}]]]
    [:button.uk-button.uk-button-primary submit-btn-label]])
 
 (defn create-entry-page []
   (let [description (r/atom nil)
         duration-hours (r/atom 0)
         duration-mins (r/atom 0)
-        start-string (r/atom nil)]
+        start (r/atom nil)]
     [time-entry-form nil "Create" ::events/create-entry {:description description
                                                          :duration-hours duration-hours
                                                          :duration-mins duration-mins
-                                                         :start-string start-string}]))
+                                                         :start start}]))
 
 (defn edit-entry-page [id]
   (if-let [entry @(re-frame/subscribe [::subs/time-entry id])]
@@ -126,11 +140,11 @@
           duration-mins (r/atom (-> (:entry/duration entry)
                                     (quot (* 1000 60))
                                     (rem 60)))
-          start-string (r/atom (tf/unparse (tf/formatter "dd/MM/yy HH:mm") (tc/from-string (:entry/start entry))))]
+          start (r/atom (tc/to-date (tc/from-string (:entry/start entry))))]
       [time-entry-form id "Update" ::events/update-entry {:description description
                                                           :duration-hours duration-hours
                                                           :duration-mins duration-mins
-                                                          :start-string start-string}])
+                                                          :start start}])
     [:div {"uk-spinner" "ratio: 2"}]))
 
 
