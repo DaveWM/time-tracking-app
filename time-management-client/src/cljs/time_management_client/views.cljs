@@ -35,7 +35,7 @@
                                        started-at-string (tf/unparse (tf/formatter "HH:mm") start)
                                        duration-string   (if (zero? (t/in-hours interval))
                                                            (str (t/in-minutes interval) " minutes")
-                                                           (str (t/in-hours interval) " hours, " (t/in-minutes interval) " minutes"))]
+                                                           (str (t/in-hours interval) " hours, " (mod (t/in-minutes interval) 60) " minutes"))]
                                    [:li
                                     [:div description]
                                     [:div.uk-text-muted.uk-text-small (str started-at-string " for " duration-string)]]))))]])))
