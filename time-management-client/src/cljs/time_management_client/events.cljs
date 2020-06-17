@@ -156,3 +156,22 @@
                                  updated-entry
                                  entry))))
     ::effects/navigate-to "/"}))
+
+(re-frame/reg-event-fx
+ ::delete-entry
+ (fn-traced [{:keys [db]} [_ id]]
+   {:http-xhrio {:method :delete
+                 :uri (str config/api-url "/time-sheet/" id)
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/json-response-format {:keywords? true})
+                 :headers (auth-header (:auth-token db))
+                 :on-success [::entry-deleted]
+                 :on-failure [::request-failed]}}))
+
+(re-frame/reg-event-db
+ ::entry-deleted
+ (fn-traced [db [_ {:keys [db/id]}]]
+   (update db :time-sheet-entries
+           (partial remove (fn [entry]
+                             (= id (:db/id entry)))))))
+

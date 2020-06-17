@@ -41,7 +41,8 @@
                                      [:div description]
                                      [:div.uk-text-muted.uk-text-small (str started-at-string " for " duration-string)]]
                                     [:div.time-entry__controls
-                                     [:a.uk-button.uk-button-default {:href (str "/entries/" id)} "Edit"]]]))))]])))
+                                     [:a.uk-button.uk-button-default {:href (str "/entries/" id)} "Edit"]
+                                     [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-entry id])} "Delete"]]]))))]])))
        [:a.uk-button.uk-button-primary {:href "/entries"} "New Entry"]])))
 
 
