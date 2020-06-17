@@ -25,6 +25,7 @@
             (group-by (fn [entry]
                         (u/days-since-epoch (:entry/start entry))))
             (map (fn [[date-days entries]]
+                   ^{:key date-days}
                    [:div.uk-card.uk-card-body.uk-card-default.uk-margin
                     [:h4.uk-card-title (tf/unparse (tf/formatter "do MMMM, yyyy") (u/from-days-since-epoch date-days))]
                     [:ul.uk-list.uk-list-divider
@@ -36,6 +37,7 @@
                                        duration-string (if (zero? (t/in-hours interval))
                                                          (str (t/in-minutes interval) " minutes")
                                                          (str (t/in-hours interval) " hours, " (mod (t/in-minutes interval) 60) " minutes"))]
+                                   ^{:key id}
                                    [:li.time-entry
                                     [:div
                                      [:div description]
