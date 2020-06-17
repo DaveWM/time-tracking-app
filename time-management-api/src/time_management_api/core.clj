@@ -63,7 +63,7 @@
         (let [db (datomic/user-db user-id)]
           (if (some? (queries/get-timesheet-entry db id))
             (do @(d/transact datomic/conn [[:db.fn/retractEntity id]])
-                (ok {:deleted id}))
+                (ok {:db/id id}))
             (not-found {:error (str "No time sheet entry with id " id)})))))))
 
 (defroutes app-routes
