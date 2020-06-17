@@ -1,17 +1,20 @@
 (ns time-management-client.events
   (:require
-    [re-frame.core :as re-frame]
-    [day8.re-frame.tracing :refer-macros [fn-traced]]
-    [ajax.core :as ajax]
-    [cljs-time.coerce :as tc]
-    [cljs-time.format :as tf]
-    [time-management-client.db :as db]
-    [time-management-client.effects :as effects]
-    [time-management-client.coeffects :as coeffects]
-    [time-management-client.config :as config]))
+   [re-frame.core :as re-frame]
+   [day8.re-frame.tracing :refer-macros [fn-traced]]
+   [ajax.core :as ajax]
+   [cljs-time.coerce :as tc]
+   [cljs-time.format :as tf]
+   [cljs-time.core :as t]
+   [hiccups.runtime :as hiccup]
+   [time-management-client.db :as db]
+   [time-management-client.effects :as effects]
+   [time-management-client.coeffects :as coeffects]
+   [time-management-client.config :as config]))
 
 (defn auth-header [token]
   [:Authorization (str "Token " token)])
+
 
 (defn effects-on-page-load [page db]
   (let [load-time-sheet-effect {:method :get
@@ -175,3 +178,25 @@
            (partial remove (fn [entry]
                              (= id (:db/id entry)))))))
 
+(re-frame/reg-event-fx
+ ::export-time-sheet
+ (fn-traced [{:keys [db]} _]
+   {::effects/save-file {:content (hiccup/render-html
+                                   [:html
+                                    [:body
+                                     (->> (:time-sheet-entries db)
+                                          (sort-by (comp tc/to-long tc/from-string :entry/start))
+                                          (map (fn [{:keys [entry/start entry/duration entry/description]}]
+                                                 (let [ended-at (t/plus (tc/from-string start) (t/millis duration))
+                                                       interval (t/interval (tc/from-string start) ended-at)
+                                                       started-at-string (tf/unparse (tf/formatter "yyyy.MM.dd") (tc/from-string start))
+                                                       duration-string (if (zero? (t/in-hours interval))
+                                                                         (str (t/in-minutes interval) "m")
+                                                                         (str (t/in-hours interval) "h " (mod (t/in-minutes interval) 60) "m"))]
+                                                   [:div
+                                                    [:ul
+                                                     [:li "Date: " started-at-string]
+                                                     [:li "Total Time: " duration-string]
+                                                     [:li "Description: " description]]]))))]])
+                         :type "text/html"
+                         :name "time-sheet.html"}}))
