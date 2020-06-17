@@ -1,6 +1,7 @@
 (ns time-management-client.subs
   (:require
-   [re-frame.core :as re-frame]))
+   [re-frame.core :as re-frame]
+   [time-management-client.db :as db]))
 
 (re-frame/reg-sub
  ::page
@@ -16,7 +17,7 @@
 (re-frame/reg-sub
   ::time-sheet-entries
   (fn [db _]
-    (:time-sheet-entries db)))
+    (db/filtered-time-entries db)))
 
 (re-frame/reg-sub
   ::loading
@@ -29,3 +30,8 @@
    (->> (:time-sheet-entries db)
         (filter #(= id (:db/id %)))
         first)))
+
+(re-frame/reg-sub
+ ::filters
+ (fn [db _]
+   (:filters db)))

@@ -16,10 +16,26 @@
 
 (defn home-page []
   (let [time-sheet-entries (re-frame/subscribe [::subs/time-sheet-entries])
-        loading (re-frame/subscribe [::subs/loading])]
+        loading (re-frame/subscribe [::subs/loading])
+        {:keys [start-date end-date]} @(re-frame/subscribe [::subs/filters])]
     (if @loading
       [:div {"uk-spinner" "ratio: 2"}]
       [:div.home
+       [:div.uk-card.uk-card-body.uk-card-default.uk-margin
+        [:h4.uk-card-title "Filters"]
+        [:form.uk-grid-small.uk-form-stacked {"uk-grid" "true"}
+         [:div {:class "uk-width-1-2@s"}
+          [:label.uk-form-label {:for "start-date"} "Start Date"]
+          [date-picker {:selected start-date
+                        :id "start-date"
+                        :show-time-select true
+                        :on-change #(re-frame/dispatch [::events/filter-start-date-updated %])}]]
+         [:div {:class "uk-width-1-2@s"}
+          [:label.uk-form-label {:for "end-date"} "End Date"]
+          [date-picker {:selected end-date
+                        :id "end-date"
+                        :show-time-select true
+                        :on-change #(re-frame/dispatch [::events/filter-end-date-updated %])}]]]]
        (->> @time-sheet-entries
             (map (fn [entry]
                    (update entry :entry/start tc/from-string)))

@@ -182,7 +182,7 @@
    {::effects/save-file {:content (hiccup/render-html
                                    [:html
                                     [:body
-                                     (->> (:time-sheet-entries db)
+                                     (->> (db/filtered-time-entries db)
                                           (sort-by (comp tc/to-long tc/from-string :entry/start))
                                           (map (fn [{:keys [entry/start entry/duration entry/description]}]
                                                  (let [ended-at (t/plus (tc/from-string start) (t/millis duration))
@@ -198,3 +198,14 @@
                                                      [:li "Description: " description]]]))))]])
                          :type "text/html"
                          :name "time-sheet.html"}}))
+
+
+(re-frame/reg-event-db
+ ::filter-start-date-updated
+ (fn-traced [db [_ updated-date]]
+   (assoc-in db [:filters :start-date] updated-date)))
+
+(re-frame/reg-event-db
+ ::filter-end-date-updated
+ (fn-traced [db [_ updated-date]]
+   (assoc-in db [:filters :end-date] updated-date)))
