@@ -3,11 +3,11 @@
    [reagent.core :as reagent]
    [reagent.dom :as rdom]
    [re-frame.core :as re-frame]
+   ["uikit"]
    [time-management-client.events :as events]
    [time-management-client.routes :as routes]
    [time-management-client.views :as views]
-   [time-management-client.config :as config]
-   ))
+   [time-management-client.config :as config]))
 
 
 (defn dev-setup []

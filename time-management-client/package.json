@@ -6,7 +6,8 @@
     "react": "16.13.1",
     "react-datepicker": "^3.0.0",
     "react-dom": "16.13.1",
-    "react-highlight.js": "1.0.7"
+    "react-highlight.js": "1.0.7",
+    "uikit": "3.5.4"
   },
   "devDependencies": {
     "karma": "4.4.1",

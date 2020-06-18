@@ -15,7 +15,7 @@
                  [hiccups "0.3.0"]]
 
   :plugins [[lein-shadow "0.2.0"]
-            
+            [lein-asset-minifier "0.4.6"]
             [lein-less "1.7.5"]
             [lein-shell "0.5.0"]]
 
@@ -31,6 +31,8 @@
 
   :less {:source-paths ["less"]
          :target-path  "resources/public/css"}
+
+  :minify-assets [[:css {:source "resources/public/css/site.css" :target "resources/public/css/site.min.css"}]]
 
   :shell {:commands {"open" {:windows ["cmd" "/c" "start"]
                              :macosx  "open"
@@ -49,7 +51,8 @@
                                                                           time-management-client.config/api-url "http://localhost:8081"}}}
                                :release {:build-options
                                          {:ns-aliases
-                                          {day8.re-frame.tracing day8.re-frame.tracing-stubs}}}
+                                          {day8.re-frame.tracing day8.re-frame.tracing-stubs}}
+                                         :compiler-options {:closure-defines {time-management-client.config/api-url "http://localhost:8081"}}}
 
                                :devtools {:http-root "resources/public"
                                           :http-port 8280
@@ -88,5 +91,5 @@
    
 }
 
-  :prep-tasks [
-               ["less" "once"]])
+  :prep-tasks [["less" "once"]
+               ["minify-assets" "once"]])
