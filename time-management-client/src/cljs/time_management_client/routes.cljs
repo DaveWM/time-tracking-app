@@ -9,7 +9,8 @@
         "login" :login
         "register" :register
         "entries" {["/" :id] :edit-entry
-                   true :create-entry}}
+                   true :create-entry}
+        "settings" :settings}
    true :not-found])
 
 (defn set-page! [match]

@@ -164,6 +164,21 @@
     [:div {"uk-spinner" "ratio: 2"}]))
 
 
+(defn settings-page []
+  (let [settings (re-frame/subscribe [::subs/settings])]
+    (if (some? @settings)
+      (let [preferred-working-hours (r/atom (:settings/preferred-working-hours @settings))]
+        [:form.uk-form-stacked {:on-submit #(do
+                                              (re-frame/dispatch [::events/update-settings {:preferred-working-hours (js/parseInt @preferred-working-hours)}])
+                                              (.preventDefault %))}
+         [:legend.uk-legend "Settings"]
+         [form-input "Preferred Working Hours per Day" preferred-working-hours {:type "number"
+                                                                                :min 0
+                                                                                :step 1}]
+         [:button.uk-button.uk-button-primary "Save"]])
+      [:div {"uk-spinner" "ratio: 2"}])))
+
+
 (defn show-page [page-name route-params]
   (case page-name
     :home [home-page]
@@ -171,6 +186,7 @@
     :register [register-page]
     :create-entry [create-entry-page]
     :edit-entry [edit-entry-page (js/parseInt (:id route-params))]
+    :settings [settings-page]
     :not-found [:p "Page not found!"]
     [:div]))
 
@@ -186,6 +202,7 @@
           "Time Management App"]]
         [:div.uk-navbar-right
          [:div.uk-navbar-item
+          [:a.uk-button.uk-button-primary {:href "/settings"} "Settings"]
           [:button.uk-button.uk-button-primary {:on-click #(re-frame/dispatch [::events/logout])} "Log out"]]]]
        [:div.uk-section
         [:div.uk-container.uk-container-large

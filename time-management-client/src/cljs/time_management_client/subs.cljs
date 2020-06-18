@@ -35,3 +35,8 @@
  ::filters
  (fn [db _]
    (:filters db)))
+
+(re-frame/reg-sub
+ ::settings
+ (fn [db _]
+   (:settings db)))

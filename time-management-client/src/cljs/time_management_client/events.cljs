@@ -28,6 +28,13 @@
              :http-xhrio load-time-sheet-effect}
       :edit-entry {:db (assoc db :loading true)
                    :http-xhrio load-time-sheet-effect}
+      :settings {:db (assoc db :loading true)
+                 :http-xhrio {:method :get
+                              :uri (str config/api-url "/settings")
+                              :response-format (ajax/json-response-format {:keywords? true})
+                              :headers (auth-header (:auth-token db))
+                              :on-success [::received-settings]
+                              :on-failure [::request-failed]}}
       nil)))
 
 (re-frame/reg-event-fx
@@ -209,3 +216,32 @@
  ::filter-end-date-updated
  (fn-traced [db [_ updated-date]]
    (assoc-in db [:filters :end-date] updated-date)))
+
+
+(re-frame/reg-event-db
+ ::received-settings
+ (fn-traced [db [_ settings]]
+   (assoc db :settings settings
+             :loading false)))
+
+
+(re-frame/reg-event-fx
+ ::update-settings
+ (fn-traced [{:keys [db]} [_ {:keys [preferred-working-hours]}]]
+   (let [form-data {:preferred-working-hours preferred-working-hours}]
+     {:db (assoc db :loading true)
+      :http-xhrio {:method :put
+                   :uri (str config/api-url "/settings")
+                   :params form-data
+                   :format (ajax/json-request-format)
+                   :response-format (ajax/json-response-format {:keywords? true})
+                   :headers (auth-header (:auth-token db))
+                   :on-success [::settings-updated]
+                   :on-failure [::request-failed]}})))
+
+
+(re-frame/reg-event-fx
+ ::settings-updated
+ (fn-traced [{:keys [db]} [_ updated-settings]]
+   {:db (assoc db :settings updated-settings)
+    ::effects/navigate-to "/"}))
