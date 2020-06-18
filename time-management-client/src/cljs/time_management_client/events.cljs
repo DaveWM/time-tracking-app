@@ -22,19 +22,20 @@
                                 :response-format (ajax/json-response-format {:keywords? true})
                                 :headers (auth-header (:auth-token db))
                                 :on-success [::received-time-sheet]
-                                :on-failure [::request-failed]}]
-    (case page
-      :home {:db (assoc db :loading true)
-             :http-xhrio load-time-sheet-effect}
-      :edit-entry {:db (assoc db :loading true)
-                   :http-xhrio load-time-sheet-effect}
-      :settings {:db (assoc db :loading true)
-                 :http-xhrio {:method :get
+                                :on-failure [::request-failed]}
+        load-settings-effect {:method :get
                               :uri (str config/api-url "/settings")
                               :response-format (ajax/json-response-format {:keywords? true})
                               :headers (auth-header (:auth-token db))
                               :on-success [::received-settings]
-                              :on-failure [::request-failed]}}
+                              :on-failure [::request-failed]}]
+    (case page
+      :home {:db (assoc db :loading true)
+             :http-xhrio [load-time-sheet-effect load-settings-effect]}
+      :edit-entry {:db (assoc db :loading true)
+                   :http-xhrio load-time-sheet-effect}
+      :settings {:db (assoc db :loading true)
+                 :http-xhrio load-settings-effect}
       nil)))
 
 (re-frame/reg-event-fx

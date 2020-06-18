@@ -17,7 +17,8 @@
 (defn home-page []
   (let [time-sheet-entries (re-frame/subscribe [::subs/time-sheet-entries])
         loading (re-frame/subscribe [::subs/loading])
-        {:keys [start-date end-date]} @(re-frame/subscribe [::subs/filters])]
+        {:keys [start-date end-date]} @(re-frame/subscribe [::subs/filters])
+        {:keys [settings/preferred-working-hours]} @(re-frame/subscribe [::subs/settings])]
     (if @loading
       [:div {"uk-spinner" "ratio: 2"}]
       [:div.home
@@ -43,26 +44,35 @@
             (group-by (fn [entry]
                         (u/days-since-epoch (:entry/start entry))))
             (map (fn [[date-days entries]]
-                   ^{:key date-days}
-                   [:div.uk-card.uk-card-body.uk-card-default.uk-margin
-                    [:h4.uk-card-title (tf/unparse (tf/formatter "do MMMM, yyyy") (u/from-days-since-epoch date-days))]
-                    [:ul.uk-list.uk-list-divider
-                     (->> entries
-                          (map (fn [{:keys [entry/start entry/duration entry/description db/id]}]
-                                 (let [ended-at (t/plus start (t/millis duration))
-                                       interval (t/interval start ended-at)
-                                       started-at-string (tf/unparse (tf/formatter "HH:mm") start)
-                                       duration-string (if (zero? (t/in-hours interval))
-                                                         (str (t/in-minutes interval) " minutes")
-                                                         (str (t/in-hours interval) " hours, " (mod (t/in-minutes interval) 60) " minutes"))]
-                                   ^{:key id}
-                                   [:li.time-entry
-                                    [:div
-                                     [:div description]
-                                     [:div.uk-text-muted.uk-text-small (str started-at-string " for " duration-string)]]
-                                    [:div.time-entry__controls
-                                     [:a.uk-button.uk-button-default {:href (str "/entries/" id)} "Edit"]
-                                     [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-entry id])} "Delete"]]]))))]])))
+                   (let [total-worked-hours (->> entries
+                                                 (map :entry/duration)
+                                                 (map #(/ % (* 1000 60 60)))
+                                                 (reduce + 0))
+                         over-preferred-hours? (< preferred-working-hours total-worked-hours)]
+                     ^{:key date-days}
+                     [:div.uk-card.uk-card-body.uk-card-default.uk-margin.day-entry
+                      {:class (if over-preferred-hours?
+                                "day-entry--warning"
+                                "day-entry--ok")}
+                      [:h4.uk-card-title (tf/unparse (tf/formatter "do MMMM, yyyy") (u/from-days-since-epoch date-days))
+                       ]
+                      [:ul.uk-list.uk-list-divider
+                       (->> entries
+                            (map (fn [{:keys [entry/start entry/duration entry/description db/id]}]
+                                   (let [ended-at (t/plus start (t/millis duration))
+                                         interval (t/interval start ended-at)
+                                         started-at-string (tf/unparse (tf/formatter "HH:mm") start)
+                                         duration-string (if (zero? (t/in-hours interval))
+                                                           (str (t/in-minutes interval) " minutes")
+                                                           (str (t/in-hours interval) " hours, " (mod (t/in-minutes interval) 60) " minutes"))]
+                                     ^{:key id}
+                                     [:li.time-entry
+                                      [:div
+                                       [:div description]
+                                       [:div.uk-text-muted.uk-text-small (str started-at-string " for " duration-string)]]
+                                      [:div.time-entry__controls
+                                       [:a.uk-button.uk-button-default {:href (str "/entries/" id)} "Edit"]
+                                       [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-entry id])} "Delete"]]]))))]]))))
        [:a.uk-button.uk-button-primary {:href "/entries"} "New Entry"]
        (when-not (empty? @time-sheet-entries)
          [:button.uk-button.uk-button-default {:on-click #(re-frame/dispatch [::events/export-time-sheet])} "Export as HTML"])])))
