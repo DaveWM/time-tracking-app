@@ -54,6 +54,16 @@
 (s/def :request/update-time-sheet-entry :request/create-time-sheet-entry)
 
 
+(s/def :settings/preferred-working-hours pos-int?)
+(defphraser pos-int? [_ {:keys [val]}]
+  {:via [:settings/preferred-working-hours]}
+  (str val " is not valid for 'preferred working hours', it must be an integer above 0"))
+
+
+(s/def :request/update-settings
+  (s/keys :req-un [:settings/preferred-working-hours]))
+
+
 (defphraser #(contains? % key)
   [_ _ key]
   (str "Missing field: " key))

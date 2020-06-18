@@ -30,7 +30,11 @@
    {:db/ident :entry/duration
     :db/valueType :db.type/long
     :db/cardinality :db.cardinality/one
-    :db/doc "The duration of the entry in milliseconds"}])
+    :db/doc "The duration of the entry in milliseconds"}
+
+   {:db/ident :settings/preferred-working-hours
+    :db/valueType :db.type/long
+    :db/cardinality :db.cardinality/one}])
 
 
 (defstate conn

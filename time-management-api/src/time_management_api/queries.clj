@@ -4,7 +4,7 @@
 
 
 (defn get-user-by-email [db email]
-  (-> (d/q '[:find (pull ?e [:user/email :user/password {:user/role [:db/ident]}]) .
+  (-> (d/q '[:find (pull ?e [:db/id :user/email :user/password {:user/role [:db/ident]}]) .
              :in $ ?email
              :where
              [?e :user/email ?email]]
@@ -22,3 +22,9 @@
          :in $ ?e
          :where [?e :entry/description]]
        db id))
+
+
+(defn get-settings [db]
+  (d/q '[:find (pull ?u [:settings/preferred-working-hours]) .
+         :where [?u :user/email]]
+       db))

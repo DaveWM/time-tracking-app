@@ -64,7 +64,18 @@
           (if (some? (queries/get-timesheet-entry db id))
             (do @(d/transact datomic/conn [[:db.fn/retractEntity id]])
                 (ok {:db/id id}))
-            (not-found {:error (str "No time sheet entry with id " id)})))))))
+            (not-found {:error (str "No time sheet entry with id " id)})))))
+
+    (context "/settings" []
+      (GET "/" {{:keys [user-id]} :identity}
+        (let [db (datomic/user-db user-id)]
+          (ok (into {} (queries/get-settings db)))))
+
+      (PUT "/" {{:keys [user-id]} :identity
+                {:keys [preferred-working-hours] :as body} :body}
+        (u/with-spec body :request/update-settings
+          @(d/transact datomic/conn [[:db/add user-id :settings/preferred-working-hours preferred-working-hours]])
+          (ok {:settings/preferred-working-hours preferred-working-hours}))))))
 
 (defroutes app-routes
   (GET "/health-check" [] (ok {:healthy true}))
