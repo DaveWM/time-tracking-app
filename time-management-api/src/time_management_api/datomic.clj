@@ -52,8 +52,7 @@
               (let [entity-user-id (-> (d/entity db (:e datom))
                                        :user/id
                                        :db/id)]
-                (or (nil? entity-user-id)
-                    (= entity-user-id user-id)
+                (or (= entity-user-id user-id)
                     (= (:e datom) user-id))))))
 
 
