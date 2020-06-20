@@ -5,9 +5,13 @@
 
 (deftest create-token-test
   (with-redefs [time-management-api.config/config {:auth-secret "secret"}]
-    (let [token (sut/create-token 12345 "test@gmail.com")
+    (let [user {:db/id 12345
+                :user/role #{:role/user :role/admin}
+                :user/email "test@gmail.com"}
+          token (sut/create-token user)
           decoded-token (jwt/unsign token "secret" sut/token-options)]
       (is (some? token))
       (is (= 12345 (:user-id decoded-token)))
       (is (= "test@gmail.com" (:email decoded-token)))
+      (is (= ["role/user" "role/admin"] (:roles decoded-token)))
       (is (some? (:exp decoded-token))))))

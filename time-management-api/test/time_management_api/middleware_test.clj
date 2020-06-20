@@ -19,3 +19,9 @@
         {:keys [status body]} ((sut/wrap-exception-handling bad-handler) {})]
     (is (= 500 status))
     (is (= #{:error :exception} (set (keys body))))))
+
+(deftest validate-role-handling
+  (let [handler identity
+        valid-request {:identity {:roles ["role/user" "role/admin"]}}]
+    (is (= valid-request ((sut/wrap-validate-role handler #{:role/admin}) valid-request)))
+    (is (= 403 (:status ((sut/wrap-validate-role handler #{:role/admin}) {:identity {:roles #{:role/user}}}))))))

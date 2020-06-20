@@ -28,3 +28,9 @@
   (d/q '[:find (pull ?u [:settings/preferred-working-hours]) .
          :where [?u :user/email]]
        db))
+
+(defn get-all-users [db]
+  (->> (d/q '[:find [(pull ?e [:db/id :user/email {:user/role [:db/ident]}]) ...]
+              :where [?e :user/email]]
+            db)
+       (map #(u/update-when % :user/role (partial map :db/ident)))))

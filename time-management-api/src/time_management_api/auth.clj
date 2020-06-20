@@ -7,11 +7,10 @@
 (def token-options
   {:alg :hs512})
 
-(defn create-token [user-id email]
-  (let [claims {:user-id user-id
-                :email email
-                ;; TODO - update this
-                :roles [:user]
+(defn create-token [user-entity]
+  (let [claims {:user-id (:db/id user-entity)
+                :email (:user/email user-entity)
+                :roles (set (:user/role user-entity))
                 :exp (time/plus (time/now) (time/days 1))}]
     (jwt/sign claims (:auth-secret config) token-options)))
 

@@ -81,15 +81,24 @@
 
 
 (comment
-  (require 'buddy.hashers)
-  ;; Insert some example data
-  @(d/transact conn [[:db/add "new" :user/email "mail@davemartin.me"]
-                     [:db/add "new" :user/password (buddy.hashers/derive "password1")]
-                     [:db/add "new" :user/role :role/user]
-                     [:db/add "new" :user/role :role/manager]])
+ (require 'buddy.hashers)
+ ;; Insert some example data
+ @(d/transact conn [[:db/add "new" :user/email "mail@davemartin.me"]
+                    [:db/add "new" :user/password (buddy.hashers/derive "password1")]
+                    [:db/add "new" :user/role :role/user]
+                    [:db/add "new" :user/role :role/manager]])
 
-  @(d/transact conn [[:db/add "entry" :entry/description "First entry"]
-                     [:db/add "entry" :entry/start (java.util.Date.)]
-                     [:db/add "entry" :entry/duration 3600000]
-                     [:db/add "entry" :user/id [:user/email "mail@davemartin.me"]]])
-  )
+ @(d/transact conn [[:db/add "entry" :entry/description "First entry"]
+                    [:db/add "entry" :entry/start (java.util.Date.)]
+                    [:db/add "entry" :entry/duration 3600000]
+                    [:db/add "entry" :user/id [:user/email "mail@davemartin.me"]]])
+
+ ;; update email and run this to upgrade a user to admin
+ (let [email "mail@davemartin.me"
+       user-id (d/q '[:find ?e .
+                      :in $ ?email
+                      :where [?e :user/email ?email]]
+                    (d/db conn) email)]
+   @(d/transact conn [[:db/add user-id :user/role :role/manager]
+                      [:db/add user-id :user/role :role/admin]]))
+ )

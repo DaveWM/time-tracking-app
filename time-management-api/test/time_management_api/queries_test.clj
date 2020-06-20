@@ -66,4 +66,15 @@
         result (sut/get-settings db)]
     (is (= 5 (:settings/preferred-working-hours result)))))
 
+(deftest get-all-users-test
+  (let [db (-> (d/db mock-conn)
+               (d/with [[:db/add "user" :user/email "email"]
+                        [:db/add "user" :user/role :role/user]])
+               :db-after)
+        results (sut/get-all-users db)
+        {:keys [user/email user/role]} (first results)]
+    (is (= 1 (count results)))
+    (is (= "email" email))
+    (is (= [:role/user] role))))
+
 

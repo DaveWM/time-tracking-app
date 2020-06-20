@@ -23,6 +23,12 @@
             [time-management-api.middleware :as mw]
             [time-management-api.utils :as u]))
 
+(defroutes user-manager-only-routes
+  (context "/users" []
+    (GET "/" []
+      (let [db (d/db datomic/conn)]
+        (ok {:users (queries/get-all-users db)})))))
+
 (defroutes authenticated-only-routes
   (context "/" []
     (context "/time-sheet" []
@@ -75,7 +81,11 @@
                 {:keys [preferred-working-hours] :as body} :body}
         (u/with-spec body :request/update-settings
           @(d/transact datomic/conn [[:db/add user-id :settings/preferred-working-hours preferred-working-hours]])
-          (ok {:settings/preferred-working-hours preferred-working-hours}))))))
+          (ok {:settings/preferred-working-hours preferred-working-hours}))))
+
+    (wrap-routes user-manager-only-routes
+                 #(-> %
+                      (mw/wrap-validate-role #{:role/manager})))))
 
 (defroutes app-routes
   (GET "/health-check" [] (ok {:healthy true}))
@@ -88,7 +98,7 @@
                                                                         :user/password (buddy.hashers/derive password)
                                                                         :user/role :role/user}))]
           (ok {:email email
-               :token (auth/create-token (get-in result [:tempids "new"]) email)}))
+               :token (auth/create-token (queries/get-user-by-email (:db-after result) email))}))
         (bad-request {:error (str "There is already a user with email " email)}))
       (bad-request {:error (phrase.alpha/phrase-first {} :request/create-user body)})))
 
@@ -99,7 +109,7 @@
         (if (and (some? existing-user) (buddy.hashers/check password (:user/password existing-user)))
           (ok {:email email
                :roles (:user/role existing-user)
-               :token (auth/create-token (:db/id existing-user) email)})
+               :token (auth/create-token existing-user)})
           ;; return a 404 if password isn't correct - don't want to give away that the user exists
           (not-found {:error "Email doesn't exist, or password isn't correct"})))
       (bad-request {:error (phrase.alpha/phrase-first {} :request/create-user (:body request))})))

@@ -1,6 +1,6 @@
 (ns time-management-api.middleware
   (:require [buddy.auth]
-            [ring.util.http-response :refer [unauthorized internal-server-error]]))
+            [ring.util.http-response :refer [unauthorized internal-server-error forbidden]]))
 
 (defn wrap-auth-check [handler]
   (fn [request]
@@ -15,3 +15,12 @@
       (handler request)
       (catch Exception e (internal-server-error {:error "An unexpected error occurred"
                                                  :exception (ex-message e)})))))
+
+(defn wrap-validate-role [handler necessary-roles]
+  (fn [request]
+    (let [roles (->> (get-in request [:identity :roles])
+                     (map keyword)
+                     (set))]
+      (if (clojure.set/subset? (set necessary-roles) roles)
+        (handler request)
+        (forbidden {:error "You do not have permission for this resource."})))))
