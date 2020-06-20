@@ -197,11 +197,15 @@
        [:h2 "Users"]
        [:ul.uk-list.uk-list-divider.users-list
         (->> @users
-             (map (fn [{:keys [user/email user/role]}]
+             (map (fn [{:keys [db/id user/email user/role]}]
                     [:li.users-list__item
-                     [:span email]
-                     (->> role
-                          (map #(-> [:span.uk-label.users-list__role (name %)])))])))]])))
+                     [:div
+                      [:div.uk-text-bold email]
+                      [:div
+                       (->> role
+                            (map #(-> [:span.uk-label.users-list__role (name %)])))]]
+                     [:div
+                      [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-user id])} "Delete"]]])))]])))
 
 (defn not-authorized-page []
   [:div.uk-alert-danger {"uk-alert" ""}

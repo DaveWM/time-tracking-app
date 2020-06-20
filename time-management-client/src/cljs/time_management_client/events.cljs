@@ -264,3 +264,22 @@
  (fn-traced [db [_ {:keys [users]}]]
    (assoc db :users (->> users (map #(update % :user/role (partial map keyword))))
              :loading false)))
+
+(re-frame/reg-event-fx
+ ::delete-user
+ (fn-traced [{:keys [db]} [_ id]]
+   {:http-xhrio {:method :delete
+                 :uri (str config/api-url "/users/" id)
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/json-response-format {:keywords? true})
+                 :headers (auth-header (:auth-token db))
+                 :on-success [::user-deleted]
+                 :on-failure [::request-failed]}}))
+
+(re-frame/reg-event-db
+ ::user-deleted
+ (fn-traced [db [_ {:keys [db/id]}]]
+   (update db :users
+           (partial remove (fn [entry]
+                             (= id (:db/id entry)))))))
+
