@@ -61,7 +61,6 @@
                             (map (fn [{:keys [entry/start entry/duration entry/description db/id]}]
                                    (let [ended-at (t/plus start (t/millis duration))
                                          interval (t/interval start ended-at)
-                                         started-at-string (tf/unparse (tf/formatter "HH:mm") start)
                                          duration-string (if (zero? (t/in-hours interval))
                                                            (str (t/in-minutes interval) " minutes")
                                                            (str (t/in-hours interval) " hours, " (mod (t/in-minutes interval) 60) " minutes"))]
@@ -69,7 +68,7 @@
                                      [:li.time-entry
                                       [:div
                                        [:div description]
-                                       [:div.uk-text-muted.uk-text-small (str started-at-string " for " duration-string)]]
+                                       [:div.uk-text-muted.uk-text-small duration-string]]
                                       [:div.time-entry__controls
                                        [:a.uk-button.uk-button-default {:href (str "/entries/" id)} "Edit"]
                                        [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-entry id])} "Delete"]]]))))]]))))
@@ -143,7 +142,7 @@
     [:label.uk-form-label {:for "start-date"} "Start"]
     [:div.uk-form-controls
      [date-picker {:id "start-date"
-                   :show-time-select true
+                   :show-time-select false
                    :selected @start
                    :on-change #(reset! start %)}]]]
    [:button.uk-button.uk-button-primary submit-btn-label]])
