@@ -49,7 +49,8 @@
 
 (s/def :request/create-user
   (s/keys :req-un [:user/email
-                   :user/password]))
+                   :user/password]
+          :opt-un [:user/roles]))
 (s/def :request/login :request/create-user)
 
 (s/def :request/create-time-sheet-entry
@@ -70,7 +71,8 @@
 
 (s/def :request/update-user
   (s/keys :req-un [:user/email
-                   :user/roles]))
+                   :user/roles]
+          :opt-un [:user/password]))
 
 
 (defphraser #(contains? % key)

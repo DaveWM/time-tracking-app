@@ -23,13 +23,13 @@
             [time-management-api.middleware :as mw]
             [time-management-api.utils :as u]))
 
-(defn create-user! [{:keys [email password] :as body}]
+(defn create-user! [{:keys [email password roles] :as body}]
   (if (s/valid? :request/create-user body)
     (if (nil? (queries/get-user-by-email (d/db datomic/conn) email))
       (let [result @(d/transact datomic/conn (datomic/->transactions {:db/id "new"
                                                                       :user/email email
                                                                       :user/password (buddy.hashers/derive password)
-                                                                      :user/role :role/user}))]
+                                                                      :user/role (->> roles (map #(-> {:db/ident (keyword %)})))}))]
         (ok {:email email
              :token (auth/create-token (queries/get-user-by-email (:db-after result) email))}))
       (bad-request {:error (str "There is already a user with email " email)}))
@@ -97,6 +97,7 @@
               existing-user (d/pull db '[* {:user/role [:db/ident]}] id)
               updated-user {:db/id id
                             :user/email (:email body)
+                            :user/password (:password body)
                             :user/role (mapv #(-> {:db/ident (keyword %)}) (:roles body))}]
           (if (some? (:user/email existing-user))
             (do @(d/transact datomic/conn (datomic/->transactions
@@ -135,7 +136,9 @@
   (GET "/health-check" [] (ok {:healthy true}))
 
   (POST "/register" {body :body}
-    (create-user! body))
+    (create-user!
+     ;; remove roles field in case someone tries to set roles through this endpoint
+     (dissoc body :roles)))
 
   (POST "/login" request
     (if (s/valid? :request/login (:body request))
