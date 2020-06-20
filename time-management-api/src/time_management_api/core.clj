@@ -23,6 +23,18 @@
             [time-management-api.middleware :as mw]
             [time-management-api.utils :as u]))
 
+(defn create-user! [{:keys [email password] :as body}]
+  (if (s/valid? :request/create-user body)
+    (if (nil? (queries/get-user-by-email (d/db datomic/conn) email))
+      (let [result @(d/transact datomic/conn (datomic/->transactions {:db/id "new"
+                                                                      :user/email email
+                                                                      :user/password (buddy.hashers/derive password)
+                                                                      :user/role :role/user}))]
+        (ok {:email email
+             :token (auth/create-token (queries/get-user-by-email (:db-after result) email))}))
+      (bad-request {:error (str "There is already a user with email " email)}))
+    (bad-request {:error (phrase.alpha/phrase-first {} :request/create-user body)})))
+
 (defroutes user-manager-only-routes
   (context "/users" []
     (GET "/" []
@@ -35,7 +47,9 @@
           (do
             @(d/transact datomic/conn [[:db.fn/retractEntity id]])
             (ok {:db/id id}))
-          (not-found {:error (str "No user found with id " id)}))))))
+          (not-found {:error (str "No user found with id " id)}))))
+    (POST "/" {body :body}
+      (create-user! body))))
 
 (defroutes authenticated-only-routes
   (context "/" []
@@ -98,17 +112,8 @@
 (defroutes app-routes
   (GET "/health-check" [] (ok {:healthy true}))
 
-  (POST "/register" {{:keys [email password] :as body} :body}
-    (if (s/valid? :request/create-user body)
-      (if (nil? (queries/get-user-by-email (d/db datomic/conn) email))
-        (let [result @(d/transact datomic/conn (datomic/->transactions {:db/id "new"
-                                                                        :user/email email
-                                                                        :user/password (buddy.hashers/derive password)
-                                                                        :user/role :role/user}))]
-          (ok {:email email
-               :token (auth/create-token (queries/get-user-by-email (:db-after result) email))}))
-        (bad-request {:error (str "There is already a user with email " email)}))
-      (bad-request {:error (phrase.alpha/phrase-first {} :request/create-user body)})))
+  (POST "/register" {body :body}
+    (create-user! body))
 
   (POST "/login" request
     (if (s/valid? :request/login (:body request))
