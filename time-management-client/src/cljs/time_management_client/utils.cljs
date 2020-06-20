@@ -10,3 +10,8 @@
 
 (defn kw-string [keyword]
   (str (namespace keyword) "/" (name keyword)))
+
+(defn assoc-when [m k v]
+  (if (some? v)
+    (assoc m k v)
+    m))

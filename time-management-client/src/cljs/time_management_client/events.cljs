@@ -6,6 +6,7 @@
    [cljs-time.coerce :as tc]
    [cljs-time.format :as tf]
    [cljs-time.core :as t]
+   [clojure.string :as s]
    [hiccups.runtime :as hiccup]
    ["jwt-decode" :as jwt-decode]
    [time-management-client.db :as db]
@@ -306,9 +307,9 @@
 (re-frame/reg-event-fx
  ::update-user
  (fn-traced [{:keys [db]} [_ {:keys [id email password roles]}]]
-   (let [form-data {:email email
-                    :password password
-                    :roles (map u/kw-string roles)}]
+   (let [form-data (-> {:email email
+                        :roles (map u/kw-string roles)}
+                       (u/assoc-when :password password))]
      {:db (assoc db :loading true)
       :http-xhrio {:method :put
                    :uri (str config/api-url "/users/" id)

@@ -217,7 +217,8 @@
                                                                               :id id}])
                                             (.preventDefault %))}
      [form-input "Email" email]
-     [form-input "Password" password {:type "password"}]
+     [form-input "Password" password {:type "password"
+                                      :placeholder (when id "Leave blank to not change")}]
      [:div.uk-margin
       [:label.uk-form-label "Roles"]
       [:div.uk-form-controls
@@ -231,10 +232,9 @@
                                             :class (if role-selected?
                                                      "uk-button-primary"
                                                      "uk-button-default")
-                                            :on-click #(do (println "clicked" rs @roles role role-selected? (disj rs role))
-                                                           (if role-selected?
-                                                             (swap! roles disj role)
-                                                             (swap! roles conj role)))}
+                                            :on-click #(if role-selected?
+                                                        (swap! roles disj role)
+                                                        (swap! roles conj role))}
                          (name role)]))))])]]
      [:button.uk-button.uk-button-primary {:type "submit"} submit-btn-label]]))
 
@@ -289,6 +289,7 @@
           "Time Management App"]]
         [:div.uk-navbar-right
          [:div.uk-navbar-item
+          [:a.uk-button.uk-button-primary {:href "/users"} "Users"]
           [:a.uk-button.uk-button-primary {:href "/settings"} "Settings"]
           [:button.uk-button.uk-button-primary {:on-click #(re-frame/dispatch [::events/logout])} "Log out"]]]]
        [:div.uk-section
