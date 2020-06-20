@@ -11,7 +11,9 @@
         "entries" {["/" :id] :edit-entry
                    true :create-entry}
         "settings" :settings
-        "users" :users}
+        "users" {"/new" :create-user
+                 ["/" :id] :edit-user
+                 true :users}}
    true :not-found])
 
 (def page->roles

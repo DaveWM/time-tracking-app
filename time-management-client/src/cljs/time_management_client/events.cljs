@@ -12,7 +12,8 @@
    [time-management-client.effects :as effects]
    [time-management-client.coeffects :as coeffects]
    [time-management-client.config :as config]
-   [time-management-client.routes :as routes]))
+   [time-management-client.routes :as routes]
+   [time-management-client.utils :as u]))
 
 (defn auth-header [token]
   [:Authorization (str "Token " token)])
@@ -30,7 +31,13 @@
                               :response-format (ajax/json-response-format {:keywords? true})
                               :headers (auth-header (:auth-token db))
                               :on-success [::received-settings]
-                              :on-failure [::request-failed]}]
+                              :on-failure [::request-failed]}
+        load-users-effect {:method :get
+                           :uri (str config/api-url "/users")
+                           :response-format (ajax/json-response-format {:keywords? true})
+                           :headers (auth-header (:auth-token db))
+                           :on-success [::received-users]
+                           :on-failure [::request-failed]}]
     (case page
       :home {:db (assoc db :loading true)
              :http-xhrio [load-time-sheet-effect load-settings-effect]}
@@ -39,12 +46,9 @@
       :settings {:db (assoc db :loading true)
                  :http-xhrio load-settings-effect}
       :users {:db (assoc db :loading true)
-              :http-xhrio {:method :get
-                           :uri (str config/api-url "/users")
-                           :response-format (ajax/json-response-format {:keywords? true})
-                           :headers (auth-header (:auth-token db))
-                           :on-success [::received-users]
-                           :on-failure [::request-failed]}}
+              :http-xhrio load-users-effect}
+      :edit-user {:db (assoc db :loading true)
+                  :http-xhrio load-users-effect}
       nil)))
 
 (re-frame/reg-event-fx
@@ -282,4 +286,42 @@
    (update db :users
            (partial remove (fn [entry]
                              (= id (:db/id entry)))))))
+
+(re-frame/reg-event-fx
+ ::create-user
+ (fn-traced [{:keys [db]} [_ {:keys [email password roles]}]]
+   (let [form-data {:email email
+                    :password password
+                    :roles (map u/kw-string roles)}]
+     {:db (assoc db :loading true)
+      :http-xhrio {:method :post
+                   :uri (str config/api-url "/users")
+                   :params form-data
+                   :format (ajax/json-request-format)
+                   :response-format (ajax/json-response-format {:keywords? true})
+                   :headers (auth-header (:auth-token db))
+                   :on-success [::user-updated]
+                   :on-failure [::request-failed]}})))
+
+(re-frame/reg-event-fx
+ ::update-user
+ (fn-traced [{:keys [db]} [_ {:keys [id email password roles]}]]
+   (let [form-data {:email email
+                    :password password
+                    :roles (map u/kw-string roles)}]
+     {:db (assoc db :loading true)
+      :http-xhrio {:method :put
+                   :uri (str config/api-url "/users/" id)
+                   :params form-data
+                   :format (ajax/json-request-format)
+                   :response-format (ajax/json-response-format {:keywords? true})
+                   :headers (auth-header (:auth-token db))
+                   :on-success [::user-updated]
+                   :on-failure [::request-failed]}})))
+
+(re-frame/reg-event-fx
+ ::user-updated
+ (fn-traced [{:keys [db]} _]
+   {:db db
+    ::effects/navigate-to "/users"}))
 

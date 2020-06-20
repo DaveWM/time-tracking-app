@@ -45,3 +45,10 @@
  ::all-users
  (fn [db _]
    (:users db)))
+
+(re-frame/reg-sub
+ ::user
+ (fn [db [_ id]]
+   (->> (:users db)
+        (filter #(= id (:db/id %)))
+        first)))

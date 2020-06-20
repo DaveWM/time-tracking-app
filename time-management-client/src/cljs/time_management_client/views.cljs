@@ -205,7 +205,56 @@
                        (->> role
                             (map #(-> [:span.uk-label.users-list__role (name %)])))]]
                      [:div
-                      [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-user id])} "Delete"]]])))]])))
+                      [:a.uk-button.uk-button-default {:href (str "/users/" id)} "Edit"]
+                      [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-user id])} "Delete"]]])))]
+       [:a.uk-button.uk-button-primary {:href "/users/new"} "New User"]])))
+
+(defn user-form [id submit-btn-label submit-event {:keys [email password roles]}]
+  (let [all-roles [:role/user :role/manager :role/admin]]
+    [:form.uk-form-stacked {:on-submit #(do (re-frame/dispatch [submit-event {:email @email
+                                                                              :password @password
+                                                                              :roles @roles
+                                                                              :id id}])
+                                            (.preventDefault %))}
+     [form-input "Email" email]
+     [form-input "Password" password {:type "password"}]
+     [:div.uk-margin
+      [:label.uk-form-label "Roles"]
+      [:div.uk-form-controls
+       (let [rs @roles]
+         [:div.uk-button-group
+          (->> all-roles
+               (map (fn [role]
+                      (let [role-selected? (contains? rs role)]
+                        ^{:key role}
+                        [:button.uk-button {:type "button"
+                                            :class (if role-selected?
+                                                     "uk-button-primary"
+                                                     "uk-button-default")
+                                            :on-click #(do (println "clicked" rs @roles role role-selected? (disj rs role))
+                                                           (if role-selected?
+                                                             (swap! roles disj role)
+                                                             (swap! roles conj role)))}
+                         (name role)]))))])]]
+     [:button.uk-button.uk-button-primary {:type "submit"} submit-btn-label]]))
+
+(defn create-user-page []
+  (let [email (r/atom nil)
+        password (r/atom nil)
+        roles (r/atom #{:role/user})]
+    [user-form nil "Create" ::events/create-user {:email email
+                                                  :password password
+                                                  :roles roles}]))
+
+(defn edit-user-page [id]
+  (if-let [user @(re-frame/subscribe [::subs/user id])]
+    (let [email (r/atom (:user/email user))
+          password (r/atom nil)
+          roles (r/atom (set (:user/role user)))]
+      [user-form id "Update" ::events/update-user {:email email
+                                                   :password password
+                                                   :roles roles}])
+    spinner))
 
 (defn not-authorized-page []
   [:div.uk-alert-danger {"uk-alert" ""}
@@ -222,6 +271,8 @@
     :edit-entry [edit-entry-page (js/parseInt (:id route-params))]
     :settings [settings-page]
     :users [users-page]
+    :create-user [create-user-page]
+    :edit-user [edit-user-page (js/parseInt (:id route-params))]
     :not-found [:p "Page not found!"]
     :not-authorized [not-authorized-page]
     [:div]))

@@ -7,3 +7,6 @@
 
 (defn from-days-since-epoch [days-since-epoch]
   (tc/from-long (* days-since-epoch 1000 60 60 24)))
+
+(defn kw-string [keyword]
+  (str (namespace keyword) "/" (name keyword)))
