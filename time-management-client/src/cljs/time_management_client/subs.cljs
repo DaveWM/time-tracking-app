@@ -40,3 +40,8 @@
  ::settings
  (fn [db _]
    (:settings db)))
+
+(re-frame/reg-sub
+ ::all-users
+ (fn [db _]
+   (:users db)))

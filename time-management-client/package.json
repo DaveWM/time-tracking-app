@@ -3,6 +3,7 @@
   "dependencies": {
     "file-saver": "^2.0.2",
     "highlight.js": "9.18.1",
+    "jwt-decode": "^2.2.0",
     "react": "16.13.1",
     "react-datepicker": "^3.0.0",
     "react-dom": "16.13.1",

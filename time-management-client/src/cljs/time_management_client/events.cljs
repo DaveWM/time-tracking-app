@@ -7,10 +7,12 @@
    [cljs-time.format :as tf]
    [cljs-time.core :as t]
    [hiccups.runtime :as hiccup]
+   ["jwt-decode" :as jwt-decode]
    [time-management-client.db :as db]
    [time-management-client.effects :as effects]
    [time-management-client.coeffects :as coeffects]
-   [time-management-client.config :as config]))
+   [time-management-client.config :as config]
+   [time-management-client.routes :as routes]))
 
 (defn auth-header [token]
   [:Authorization (str "Token " token)])
@@ -36,6 +38,13 @@
                    :http-xhrio load-time-sheet-effect}
       :settings {:db (assoc db :loading true)
                  :http-xhrio load-settings-effect}
+      :users {:db (assoc db :loading true)
+              :http-xhrio {:method :get
+                           :uri (str config/api-url "/users")
+                           :response-format (ajax/json-response-format {:keywords? true})
+                           :headers (auth-header (:auth-token db))
+                           :on-success [::received-users]
+                           :on-failure [::request-failed]}}
       nil)))
 
 (re-frame/reg-event-fx
@@ -47,15 +56,18 @@
 (re-frame/reg-event-fx
  ::set-page
  (fn-traced [{:keys [db]} [_ page route-params]]
-   (let [non-auth-pages #{:login :register}]
-     (if (or (some? (:auth-token db))
-             (contains? non-auth-pages page))
-       (-> (merge {:db db}
-                  (effects-on-page-load page db))
-           (assoc-in [:db :page] page)
-           (assoc-in [:db :route-params] route-params))
-       {:db db
-        ::effects/navigate-to "/login"}))))
+   (let [token (:auth-token db)
+         decoded-token (when token (js->clj (jwt-decode token) :keywordize-keys true))
+         user-roles (->> decoded-token :roles (map keyword) (set))
+         route-roles (get routes/page->roles page)]
+     (cond
+       (clojure.set/subset? route-roles user-roles) (-> (merge {:db db}
+                                                               (effects-on-page-load page db))
+                                                        (assoc-in [:db :page] page)
+                                                        (assoc-in [:db :route-params] route-params))
+       (nil? token) {:db db
+                     ::effects/navigate-to "/login"}
+       :else {:db (assoc db :page :not-authorized)}))))
 
 
 (re-frame/reg-event-fx
@@ -246,3 +258,9 @@
  (fn-traced [{:keys [db]} [_ updated-settings]]
    {:db (assoc db :settings updated-settings)
     ::effects/navigate-to "/"}))
+
+(re-frame/reg-event-db
+ ::received-users
+ (fn-traced [db [_ {:keys [users]}]]
+   (assoc db :users (->> users (map #(update % :user/role (partial map keyword))))
+             :loading false)))

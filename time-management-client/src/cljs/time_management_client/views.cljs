@@ -13,6 +13,8 @@
 
 (def date-picker (r/adapt-react-class DatePicker))
 
+(def spinner [:div {"uk-spinner" "ratio: 2"}])
+
 
 (defn home-page []
   (let [time-sheet-entries (re-frame/subscribe [::subs/time-sheet-entries])
@@ -20,7 +22,7 @@
         {:keys [start-date end-date]} @(re-frame/subscribe [::subs/filters])
         {:keys [settings/preferred-working-hours]} @(re-frame/subscribe [::subs/settings])]
     (if @loading
-      [:div {"uk-spinner" "ratio: 2"}]
+      spinner
       [:div.home
        [:div.uk-card.uk-card-body.uk-card-default.uk-margin
         [:h4.uk-card-title "Filters"]
@@ -54,8 +56,7 @@
                       {:class (if over-preferred-hours?
                                 "day-entry--warning"
                                 "day-entry--ok")}
-                      [:h4.uk-card-title (tf/unparse (tf/formatter "do MMMM, yyyy") (u/from-days-since-epoch date-days))
-                       ]
+                      [:h4.uk-card-title (tf/unparse (tf/formatter "do MMMM, yyyy") (u/from-days-since-epoch date-days))]
                       [:ul.uk-list.uk-list-divider
                        (->> entries
                             (map (fn [{:keys [entry/start entry/duration entry/description db/id]}]
@@ -170,7 +171,7 @@
                                                           :duration-hours duration-hours
                                                           :duration-mins duration-mins
                                                           :start start}])
-    [:div {"uk-spinner" "ratio: 2"}]))
+    spinner))
 
 
 (defn settings-page []
@@ -185,7 +186,27 @@
                                                                                 :min 0
                                                                                 :step 1}]
          [:button.uk-button.uk-button-primary "Save"]])
-      [:div {"uk-spinner" "ratio: 2"}])))
+      spinner)))
+
+(defn users-page []
+  (let [users (re-frame/subscribe [::subs/all-users])
+        loading (re-frame/subscribe [::subs/loading])]
+    (if @loading
+      spinner
+      [:div.users
+       [:h2 "Users"]
+       [:ul.uk-list.uk-list-divider.users-list
+        (->> @users
+             (map (fn [{:keys [user/email user/role]}]
+                    [:li.users-list__item
+                     [:span email]
+                     (->> role
+                          (map #(-> [:span.uk-label.users-list__role (name %)])))])))]])))
+
+(defn not-authorized-page []
+  [:div.uk-alert-danger {"uk-alert" ""}
+   [:a.uk-alert-close {"uk-close" ""}]
+   [:p "You don't have permission to access this page. Please contact your administrator."]])
 
 
 (defn show-page [page-name route-params]
@@ -196,7 +217,9 @@
     :create-entry [create-entry-page]
     :edit-entry [edit-entry-page (js/parseInt (:id route-params))]
     :settings [settings-page]
+    :users [users-page]
     :not-found [:p "Page not found!"]
+    :not-authorized [not-authorized-page]
     [:div]))
 
 (defn main-panel []
