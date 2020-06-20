@@ -21,7 +21,8 @@
             [time-management-api.datomic :as datomic]
             [time-management-api.queries :as queries]
             [time-management-api.middleware :as mw]
-            [time-management-api.utils :as u]))
+            [time-management-api.utils :as u]
+            [time-management-api.validation :as validation]))
 
 (defn create-user! [{:keys [email password roles] :as body}]
   (if (s/valid? :request/create-user body)
@@ -65,8 +66,11 @@
                       :user/id user-id}
                existing-entity (queries/get-timesheet-entry db id)]
            (if (some? existing-entity)
-             (do @(d/transact datomic/conn (datomic/->transactions entry existing-entity))
-                 (ok (dissoc entry :user/id)))
+             (let [txs (datomic/->transactions entry existing-entity)]
+               (if (validation/no-day-more-than-24-hours? (:db-after (d/with db txs)))
+                 (do @(d/transact datomic/conn txs)
+                     (ok (dissoc entry :user/id)))
+                 (bad-request {:error "You have tried to log more than 24 hours for a single day."})))
              (not-found {:error (str "No time sheet entry with id " id)})))))
 
      (DELETE "/:id" [id :<< as-int]

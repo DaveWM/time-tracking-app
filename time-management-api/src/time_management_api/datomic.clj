@@ -1,7 +1,10 @@
 (ns time-management-api.datomic
   (:require [mount.core :refer [defstate]]
             [datomic.api :as d]
-            [time-management-api.config :refer [config]]))
+            [clj-time.core :as t]
+            [clj-time.coerce :as tc]
+            [time-management-api.config :refer [config]]
+            [time-management-api.queries :as queries]))
 
 (def schema
   [{:db/ident :user/id
