@@ -12,6 +12,14 @@
       (u/update-when :user/role (partial map :db/ident))))
 
 
+(defn get-user-by-id [db id]
+  (-> (d/q '[:find (pull ?e [:db/id :user/email :user/password {:user/role [:db/ident]}]) .
+             :in $ ?e
+             :where [?e :user/email]]
+           db id)
+      (u/update-when :user/role (partial map :db/ident))))
+
+
 (defn get-timesheet-entries [db]
   (d/q '[:find [(pull ?e [:db/id :entry/description :entry/start :entry/duration]) ...]
          :where [?e :entry/description]]

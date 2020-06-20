@@ -24,6 +24,25 @@
 
     (is (nil? (sut/get-user-by-email db "not existent email")))))
 
+(deftest get-user-by-id-test
+  (let [{db :db-after
+         tempids :tempids}
+        (-> (d/db mock-conn)
+            (d/with
+             [[:db/add "user" :user/email "email"]
+              [:db/add "user" :user/password "password"]
+              [:db/add "user" :user/role "role"]
+              [:db/add "role" :db/ident :role/user]]))
+
+        user-id (get tempids "user")
+
+        {:keys [user/email user/password user/role]} (sut/get-user-by-id db user-id)]
+    (is (= "email" email))
+    (is (= "password" password))
+    (is (= [:role/user] role))
+
+    (is (nil? (sut/get-user-by-id db 12345)))))
+
 (deftest get-timesheet-entries-test
   (let [start-date (Date.)
         db (-> (d/db mock-conn)

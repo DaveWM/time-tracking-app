@@ -27,7 +27,15 @@
   (context "/users" []
     (GET "/" []
       (let [db (d/db datomic/conn)]
-        (ok {:users (queries/get-all-users db)})))))
+        (ok {:users (queries/get-all-users db)})))
+    (DELETE "/:id" [id :<< as-int]
+      (let [db (d/db datomic/conn)
+            existing-user (queries/get-user-by-id db id)]
+        (if (some? existing-user)
+          (do
+            @(d/transact datomic/conn [[:db.fn/retractEntity id]])
+            (ok {:db/id id}))
+          (not-found {:error (str "No user found with id " id)}))))))
 
 (defroutes authenticated-only-routes
   (context "/" []
