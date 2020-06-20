@@ -20,12 +20,12 @@
   [:Authorization (str "Token " token)])
 
 
-(defn effects-on-page-load [page db]
+(defn effects-on-page-load [page route-params db]
   (let [load-time-sheet-effect {:method :get
                                 :uri (str config/api-url "/time-sheet")
                                 :response-format (ajax/json-response-format {:keywords? true})
                                 :headers (auth-header (:auth-token db))
-                                :on-success [::received-time-sheet]
+                                :on-success [::received-time-sheet nil]
                                 :on-failure [::request-failed]}
         load-settings-effect {:method :get
                               :uri (str config/api-url "/settings")
@@ -50,7 +50,14 @@
               :http-xhrio load-users-effect}
       :edit-user {:db (assoc db :loading true)
                   :http-xhrio load-users-effect}
-      nil)))
+      :user-entries {:db (assoc db :loading true)
+                     :http-xhrio {:method :get
+                                  :uri (str config/api-url "/users/" (:id route-params) "/time-sheet")
+                                  :response-format (ajax/json-response-format {:keywords? true})
+                                  :headers (auth-header (:auth-token db))
+                                  :on-success [::received-time-sheet (:id route-params)]
+                                  :on-failure [::request-failed]}}
+      {:db db})))
 
 (re-frame/reg-event-fx
   ::initialize-db
@@ -66,8 +73,7 @@
          user-roles (->> decoded-token :roles (map keyword) (set))
          route-roles (get routes/page->roles page)]
      (cond
-       (clojure.set/subset? route-roles user-roles) (-> (merge {:db db}
-                                                               (effects-on-page-load page db))
+       (clojure.set/subset? route-roles user-roles) (-> (effects-on-page-load page route-params db)
                                                         (assoc-in [:db :page] page)
                                                         (assoc-in [:db :route-params] route-params))
        (nil? token) {:db db
@@ -121,10 +127,13 @@
         {::effects/navigate-to "/login"}))))
 
 (re-frame/reg-event-db
-  ::received-time-sheet
-  (fn-traced [db [_ {:keys [time-sheet-entries]}]]
-    (assoc db :time-sheet-entries time-sheet-entries
-              :loading false)))
+ ::received-time-sheet
+ (fn-traced [db [_ user-id {:keys [time-sheet-entries]}]]
+   (-> db
+       (assoc-in [:time-sheet-entries user-id] (->> time-sheet-entries
+                                                    (map #(-> [(:db/id %) %]))
+                                                    (into {})))
+       (assoc :loading false))))
 
 (re-frame/reg-event-fx
   ::logout
@@ -159,7 +168,7 @@
 
 (re-frame/reg-event-fx
  ::update-entry
- (fn-traced [{:keys [db]} [_ {:keys [id description start duration-hours duration-mins]}]]
+ (fn-traced [{:keys [db]} [_ user-id {:keys [id description start duration-hours duration-mins]}]]
    (let [form-data {:description description
                     :duration (+ (* duration-mins 1000 60) (* duration-hours 1000 60 60))
                     :start (tc/to-string start)}]
@@ -170,44 +179,38 @@
                    :format (ajax/json-request-format)
                    :response-format (ajax/json-response-format {:keywords? true})
                    :headers (auth-header (:auth-token db))
-                   :on-success [::entry-updated]
+                   :on-success [::entry-updated user-id]
                    :on-failure [::request-failed]}})))
 
 (re-frame/reg-event-fx
  ::entry-updated
- (fn-traced [{:keys [db]} [_ updated-entry]]
-   {:db (update db :time-sheet-entries
-                (partial map (fn [entry]
-                               (if (= (:db/id entry) (:db/id updated-entry))
-                                 updated-entry
-                                 entry))))
+ (fn-traced [{:keys [db]} [_ user-id updated-entry]]
+   {:db (assoc-in db [:time-sheet-entries user-id (:db/id updated-entry)] updated-entry)
     ::effects/navigate-to "/"}))
 
 (re-frame/reg-event-fx
  ::delete-entry
- (fn-traced [{:keys [db]} [_ id]]
+ (fn-traced [{:keys [db]} [_ user-id id]]
    {:http-xhrio {:method :delete
                  :uri (str config/api-url "/time-sheet/" id)
                  :format (ajax/json-request-format)
                  :response-format (ajax/json-response-format {:keywords? true})
                  :headers (auth-header (:auth-token db))
-                 :on-success [::entry-deleted]
+                 :on-success [::entry-deleted user-id]
                  :on-failure [::request-failed]}}))
 
 (re-frame/reg-event-db
  ::entry-deleted
- (fn-traced [db [_ {:keys [db/id]}]]
-   (update db :time-sheet-entries
-           (partial remove (fn [entry]
-                             (= id (:db/id entry)))))))
+ (fn-traced [db [_ user-id {:keys [db/id]}]]
+   (update-in db [:time-sheet-entries user-id] #(dissoc % id))))
 
 (re-frame/reg-event-fx
  ::export-time-sheet
- (fn-traced [{:keys [db]} _]
+ (fn-traced [{:keys [db]} [_ user-id]]
    {::effects/save-file {:content (hiccup/render-html
                                    [:html
                                     [:body
-                                     (->> (db/filtered-time-entries db)
+                                     (->> (db/filtered-time-entries db user-id)
                                           (sort-by (comp tc/to-long tc/from-string :entry/start))
                                           (map (fn [{:keys [entry/start entry/duration entry/description]}]
                                                  (let [ended-at (t/plus (tc/from-string start) (t/millis duration))

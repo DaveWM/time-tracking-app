@@ -16,8 +16,8 @@
 
 (re-frame/reg-sub
   ::time-sheet-entries
-  (fn [db _]
-    (db/filtered-time-entries db)))
+  (fn [db [_ user-id]]
+    (db/filtered-time-entries db user-id)))
 
 (re-frame/reg-sub
   ::loading

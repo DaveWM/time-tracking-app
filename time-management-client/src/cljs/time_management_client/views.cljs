@@ -29,8 +29,8 @@
 (def spinner [:div {"uk-spinner" "ratio: 2"}])
 
 
-(defn home-page []
-  (let [time-sheet-entries (re-frame/subscribe [::subs/time-sheet-entries])
+(defn time-entries-page [user-id]
+  (let [time-sheet-entries (re-frame/subscribe [::subs/time-sheet-entries user-id])
         loading (re-frame/subscribe [::subs/loading])
         {:keys [start-date end-date]} @(re-frame/subscribe [::subs/filters])
         {:keys [settings/preferred-working-hours]} @(re-frame/subscribe [::subs/settings])]
@@ -66,9 +66,10 @@
                          over-preferred-hours? (< preferred-working-hours total-worked-hours)]
                      ^{:key date-days}
                      [:div.uk-card.uk-card-body.uk-card-default.uk-margin.day-entry
-                      {:class (if over-preferred-hours?
-                                "day-entry--warning"
-                                "day-entry--ok")}
+                      {:class (when (nil? user-id)
+                                (if over-preferred-hours?
+                                  "day-entry--warning"
+                                  "day-entry--ok"))}
                       [:h4.uk-card-title (tf/unparse (tf/formatter "do MMMM, yyyy") (u/from-days-since-epoch date-days))]
                       [:ul.uk-list.uk-list-divider
                        (->> entries
@@ -85,10 +86,10 @@
                                        [:div.uk-text-muted.uk-text-small duration-string]]
                                       [:div.time-entry__controls
                                        [:a.uk-button.uk-button-default {:href (str "/entries/" id)} "Edit"]
-                                       [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-entry id])} "Delete"]]]))))]]))))
-       [:a.uk-button.uk-button-primary {:href "/entries"} "New Entry"]
+                                       [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-entry user-id id])} "Delete"]]]))))]]))))
+       [:a.uk-button.uk-button-primary {:href "/entries/new"} "New Entry"]
        (when-not (empty? @time-sheet-entries)
-         [:button.uk-button.uk-button-default {:on-click #(re-frame/dispatch [::events/export-time-sheet])} "Export as HTML"])])))
+         [:button.uk-button.uk-button-default {:on-click #(re-frame/dispatch [::events/export-time-sheet user-id])} "Export as HTML"])])))
 
 
 
@@ -218,6 +219,7 @@
                        (->> role
                             (map #(-> [:span.uk-label.users-list__role (name %)])))]]
                      [:div
+                      [:a.uk-button.uk-button-default {:href (str "/users/" id "/entries")} "Time Sheet"]
                       [:a.uk-button.uk-button-default {:href (str "/users/" id)} "Edit"]
                       [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-user id])} "Delete"]]])))]
        [:a.uk-button.uk-button-primary {:href "/users/new"} "New User"]])))
@@ -277,15 +279,16 @@
 
 (defn show-page [page-name route-params]
   (case page-name
-    :home [home-page]
+    :home [time-entries-page nil]
     :login [login-page]
     :register [register-page]
     :create-entry [create-entry-page]
-    :edit-entry [edit-entry-page (js/parseInt (:id route-params))]
+    :edit-entry [edit-entry-page (:id route-params)]
     :settings [settings-page]
     :users [users-page]
     :create-user [create-user-page]
-    :edit-user [edit-user-page (js/parseInt (:id route-params))]
+    :edit-user [edit-user-page (:id route-params)]
+    :user-entries [time-entries-page (:id route-params)]
     :not-found [:p "Page not found!"]
     :not-authorized [not-authorized-page]
     [:div]))
