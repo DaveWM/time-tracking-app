@@ -66,10 +66,12 @@
                     (cond
                       (= v (get prev-entity k)) nil
                       (sequential? v) (let [[added removed] (clojure.data/diff (->> v
-                                                                                    (map :db/id)
+                                                                                    (map #(or (:db/id %)
+                                                                                              (:db/ident %)))
                                                                                     (set))
                                                                                (->> (get prev-entity k)
-                                                                                    (map :db/id)
+                                                                                    (map #(or (:db/id %)
+                                                                                              (:db/ident %)))
                                                                                     (set)))]
                                         (concat (->> added
                                                      (map #(-> [:db/add id k %])))

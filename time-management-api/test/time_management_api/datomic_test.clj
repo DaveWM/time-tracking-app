@@ -31,7 +31,27 @@
            (sut/->transactions {:db/id eid
                                 :x nil}
                                {:db/id eid
-                                :x 1})))))
+                                :x 1})))
+    (is (= [[:db/add eid :x :y]]
+           (sut/->transactions {:db/id eid
+                                :x [{:db/ident :x} {:db/ident :y}]}
+                               {:db/id eid
+                                :x [{:db/ident :x}]})))
+    (is (= [[:db/add eid :x 234]]
+           (sut/->transactions {:db/id eid
+                                :x [{:db/id 123} {:db/ident 234}]}
+                               {:db/id eid
+                                :x [{:db/id 123}]})))
+    (is (= [[:db/retract eid :x :y]]
+           (sut/->transactions {:db/id eid
+                                :x [{:db/ident :x}]}
+                               {:db/id eid
+                                :x [{:db/ident :x} {:db/ident :y}]})))
+    (is (= [[:db/retract eid :x 234]]
+           (sut/->transactions {:db/id eid
+                                :x [{:db/id 123}]}
+                               {:db/id eid
+                                :x [{:db/id 123} {:db/ident 234}]})))))
 
 
 (deftest user-db-test

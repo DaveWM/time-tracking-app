@@ -49,7 +49,20 @@
             (ok {:db/id id}))
           (not-found {:error (str "No user found with id " id)}))))
     (POST "/" {body :body}
-      (create-user! body))))
+      (create-user! body))
+    (PUT "/:id" [id :<< as-int :as {body :body}]
+      (u/with-spec body :request/update-user
+        (let [db (d/db datomic/conn)
+              existing-user (d/pull db '[* {:user/role [:db/ident]}] id)
+              updated-user {:db/id id
+                            :user/email (:email body)
+                            :user/role (mapv #(-> {:db/ident (keyword %)}) (:roles body))}]
+          (if (some? (:user/email existing-user))
+            (do @(d/transact datomic/conn (datomic/->transactions
+                                           updated-user
+                                           existing-user))
+                (ok updated-user))
+            (not-found {:error (str "No user found with id " id)})))))))
 
 (defroutes authenticated-only-routes
   (context "/" []
