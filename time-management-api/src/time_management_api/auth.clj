@@ -10,6 +10,7 @@
 (defn create-token [user-id email]
   (let [claims {:user-id user-id
                 :email email
+                ;; TODO - update this
                 :roles [:user]
                 :exp (time/plus (time/now) (time/days 1))}]
     (jwt/sign claims (:auth-secret config) token-options)))
