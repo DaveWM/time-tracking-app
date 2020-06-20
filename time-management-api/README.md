@@ -1,7 +1,5 @@
 # time-management-api
 
-FIXME
-
 ## Prerequisites
 
 You will need [Leiningen][] 2.0.0 or above installed.
@@ -12,8 +10,6 @@ You will need [Leiningen][] 2.0.0 or above installed.
 
 To start a web server for the application, run:
 
-    lein ring server
-
-## License
-
-Copyright © 2020 FIXME
+    lein run
+    
+This will start the api on port 8081 by default. To change the port, set the `API_PORT` environment variable.
