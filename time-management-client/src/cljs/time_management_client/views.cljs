@@ -8,10 +8,23 @@
    ["react-datepicker" :default DatePicker]
    [cljs-time.coerce :as tc]
    [cljs-time.format :as tf]
-   [cljs-time.core :as t]))
+   [cljs-time.core :as t]
+   [cljs-time.local :as tl]))
 
 
-(def date-picker (r/adapt-react-class DatePicker))
+(def date-picker* (r/adapt-react-class DatePicker))
+
+(defn date-picker [{:keys [on-change] :as props}]
+  [date-picker* (-> props
+                    (assoc :on-change (fn [bad-date]
+                                        (on-change
+                                         ;; workaround for this bug: https://github.com/Hacker0x01/react-datepicker/issues/1018
+                                         ;; round date to nearest day
+                                         (-> bad-date
+                                             (tc/from-date)
+                                             (t/plus (t/hours 12))
+                                             (t/at-midnight)
+                                             (tc/to-date))))))])
 
 (def spinner [:div {"uk-spinner" "ratio: 2"}])
 
@@ -31,13 +44,13 @@
           [:label.uk-form-label {:for "start-date"} "Start Date"]
           [date-picker {:selected start-date
                         :id "start-date"
-                        :show-time-select true
+                        :show-time-select false
                         :on-change #(re-frame/dispatch [::events/filter-start-date-updated %])}]]
          [:div {:class "uk-width-1-2@s"}
           [:label.uk-form-label {:for "end-date"} "End Date"]
           [date-picker {:selected end-date
                         :id "end-date"
-                        :show-time-select true
+                        :show-time-select false
                         :on-change #(re-frame/dispatch [::events/filter-end-date-updated %])}]]]]
        (->> @time-sheet-entries
             (map (fn [entry]
