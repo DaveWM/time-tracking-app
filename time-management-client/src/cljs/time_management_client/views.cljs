@@ -122,8 +122,9 @@
 
         [:a {:href "/register"} "Don't have an account? Click this link to register"]
 
-        [form-input "Email" email]
-        [form-input "Password" password {:type "password"}]
+        [form-input "Email" email {:required "true"}]
+        [form-input "Password" password {:type "password"
+                                         :required "true"}]
 
         [:button.uk-button.uk-button-primary "Log In"]]])))
 
@@ -139,8 +140,9 @@
 
         [:a {:href "/login"} "Already have an account? Click this link to log in"]
 
-        [form-input "Email" email]
-        [form-input "Password" password {:type "password"}]
+        [form-input "Email" email {:required "true"}]
+        [form-input "Password" password {:type "password"
+                                         :required "true"}]
 
         [:button.uk-button.uk-button-primary "Register"]]])))
 
@@ -151,14 +153,16 @@
                                                                                  :start @start
                                                                                  :id id}))
                                           (.preventDefault %))}
-   [form-input "Description" description]
+   [form-input "Description" description {:required "true"}]
    [form-input "Duration - Hours" duration-hours {:type "number"
                                                   :min 0
-                                                  :step 1}]
+                                                  :step 1
+                                                  :required "true"}]
    [form-input "Duration - Minutes" duration-mins {:type "number"
                                                    :min 0
                                                    :max 59
-                                                   :step 1}]
+                                                   :step 1
+                                                   :required "true"}]
    [:div.uk-margin
     [:label.uk-form-label {:for "start-date"} "Start"]
     [:div.uk-form-controls
@@ -237,7 +241,7 @@
                                                                               :roles @roles
                                                                               :id id}])
                                             (.preventDefault %))}
-     [form-input "Email" email]
+     [form-input "Email" email {:required "true"}]
      [form-input "Password" password {:type "password"
                                       :placeholder (when id "Leave blank to not change")}]
      [:div.uk-margin
