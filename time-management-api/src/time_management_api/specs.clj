@@ -81,5 +81,5 @@
 
 (defphraser :default
   [_ problem]
-  (str (or (:val problem) "nil") " is not a valid value for the " (first (:in problem)) " field."))
+  (str (or (:val problem) "nil") " is not a valid value for the " (name (first (:in problem))) " field."))
 
