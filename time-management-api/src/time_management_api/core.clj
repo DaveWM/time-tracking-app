@@ -60,7 +60,7 @@
      (PUT "/:id" [id :<< as-int :as {{:keys [description start duration] :as body} :body
                                      {:keys [user-id]} :identity}]
        (u/with-spec body :request/update-time-sheet-entry
-         (let [db (datomic/user-db user-id)
+         (let [db (datomic/user-db (or override-user-id user-id))
                entry {:db/id id
                       :entry/description description
                       :entry/start (tc/to-date (tc/from-string start))
