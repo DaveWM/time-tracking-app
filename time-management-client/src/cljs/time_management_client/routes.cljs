@@ -9,15 +9,15 @@
         "login" :login
         "register" :register
         "entries" {"/new" :create-entry
-                   ["/" :id] :edit-entry}
+                   ["/" [long :id]] :edit-entry}
         "settings" :settings
         "users" {"/new" :create-user
-                 ["/" :id] :edit-user
-                 ["/" :user-id "/entries"] {"/new" :create-user-entry
-                                            ["/" :id] :edit-user-entry
-                                            "" :user-entries}
-                 "" :users}}
-   true :not-found])
+                 ["/" [long :id]] :edit-user
+                 ["/" [long :user-id] "/entries"] {"/new" :create-user-entry
+                                                   ["/" [long :id]] :edit-user-entry
+                                                   "" :user-entries}
+                 "" :users}
+        true :not-found}])
 
 (def page->roles
   "A map of page name to the roles necessary to access it.
@@ -32,9 +32,7 @@
    :user-entries #{:role/admin}})
 
 (defn set-page! [match]
-  (re-frame/dispatch [:time-management-client.events/set-page (:handler match) (-> (:route-params match)
-                                                                                   (update :id js/parseInt)
-                                                                                   (update :user-id js/parseInt))]))
+  (re-frame/dispatch [:time-management-client.events/set-page (:handler match) (:route-params match)]))
 
 (def history
   (pushy/pushy set-page! (partial bidi/match-route app-routes)))

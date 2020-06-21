@@ -199,7 +199,7 @@
     (if (some? @settings)
       (let [preferred-working-hours (r/atom (:settings/preferred-working-hours @settings))]
         [:form.uk-form-stacked {:on-submit #(do
-                                              (re-frame/dispatch [::events/update-settings {:preferred-working-hours (js/parseInt @preferred-working-hours)}])
+                                              (re-frame/dispatch [::events/update-settings {:preferred-working-hours (long @preferred-working-hours)}])
                                               (.preventDefault %))}
          [:legend.uk-legend "Settings"]
          [form-input "Preferred Working Hours per Day" preferred-working-hours {:type "number"
