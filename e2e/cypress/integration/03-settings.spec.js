@@ -6,7 +6,6 @@ describe('Settings page test', () => {
     it('Should be able to set your preferred working hours', () => {
         cy.visit('');
 
-        //cy.get('.uk-spinner').should('exist').should('not.be.visible');
         cy.get('a.uk-button-primary')
             .contains('Settings', {matchCase: false})
             .should('have.length', 1)
