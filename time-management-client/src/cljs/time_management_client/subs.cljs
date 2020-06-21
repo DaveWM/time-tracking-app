@@ -26,10 +26,8 @@
 
 (re-frame/reg-sub
  ::time-entry
- (fn [db [_ id]]
-   (->> (:time-sheet-entries db)
-        (filter #(= id (:db/id %)))
-        first)))
+ (fn [db [_ user-id id]]
+   (get-in db [:time-sheet-entries user-id id])))
 
 (re-frame/reg-sub
  ::filters

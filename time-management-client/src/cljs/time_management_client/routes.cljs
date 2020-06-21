@@ -13,9 +13,9 @@
         "settings" :settings
         "users" {"/new" :create-user
                  ["/" :id] :edit-user
-                 ["/" :id "/entries"] {"/new" :create-user-entry
-                                       ["/" :id] :edit-user-entry
-                                       "" :user-entries}
+                 ["/" :user-id "/entries"] {"/new" :create-user-entry
+                                            ["/" :id] :edit-user-entry
+                                            "" :user-entries}
                  "" :users}}
    true :not-found])
 
@@ -33,7 +33,8 @@
 
 (defn set-page! [match]
   (re-frame/dispatch [:time-management-client.events/set-page (:handler match) (-> (:route-params match)
-                                                                                   (update :id js/parseInt))]))
+                                                                                   (update :id js/parseInt)
+                                                                                   (update :user-id js/parseInt))]))
 
 (def history
   (pushy/pushy set-page! (partial bidi/match-route app-routes)))

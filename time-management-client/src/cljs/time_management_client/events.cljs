@@ -52,10 +52,10 @@
                   :http-xhrio load-users-effect}
       :user-entries {:db (assoc db :loading true)
                      :http-xhrio {:method :get
-                                  :uri (str config/api-url "/users/" (:id route-params) "/time-sheet")
+                                  :uri (str config/api-url "/users/" (:user-id route-params) "/time-sheet")
                                   :response-format (ajax/json-response-format {:keywords? true})
                                   :headers (auth-header (:auth-token db))
-                                  :on-success [::received-time-sheet (:id route-params)]
+                                  :on-success [::received-time-sheet (:user-id route-params)]
                                   :on-failure [::request-failed]}}
       {:db db})))
 
@@ -145,25 +145,27 @@
 
 (re-frame/reg-event-fx
  ::create-entry
- (fn-traced [{:keys [db]} [_ {:keys [description start duration-hours duration-mins]}]]
+ (fn-traced [{:keys [db]} [_ user-id {:keys [description start duration-hours duration-mins]}]]
    (let [form-data {:description description
                     :duration (+ (* duration-mins 1000 60) (* duration-hours 1000 60 60))
                     :start (tc/to-string start)}]
      {:db (assoc db :loading true)
       :http-xhrio {:method :post
-                   :uri (str config/api-url "/time-sheet")
+                   :uri (if user-id
+                          (str config/api-url "/users/" user-id "/time-sheet")
+                          (str config/api-url "/time-sheet"))
                    :params form-data
                    :format (ajax/json-request-format)
                    :response-format (ajax/json-response-format {:keywords? true})
                    :headers (auth-header (:auth-token db))
-                   :on-success [::entry-created]
+                   :on-success [::entry-created user-id]
                    :on-failure [::request-failed]}})))
 
 (re-frame/reg-event-fx
  ::entry-created
- (fn-traced [{:keys [db]} _]
+ (fn-traced [{:keys [db]} [_ user-id]]
    {:db db
-    ::effects/navigate-to "/"}))
+    ::effects/navigate-to (if user-id (str "/users/" user-id "/entries") "/")}))
 
 
 (re-frame/reg-event-fx
@@ -174,7 +176,9 @@
                     :start (tc/to-string start)}]
      {:db (assoc db :loading true)
       :http-xhrio {:method :put
-                   :uri (str config/api-url "/time-sheet/" id)
+                   :uri (if user-id
+                          (str config/api-url "/users/" user-id "/time-sheet/" id)
+                          (str config/api-url "/time-sheet/" id))
                    :params form-data
                    :format (ajax/json-request-format)
                    :response-format (ajax/json-response-format {:keywords? true})
@@ -186,7 +190,7 @@
  ::entry-updated
  (fn-traced [{:keys [db]} [_ user-id updated-entry]]
    {:db (assoc-in db [:time-sheet-entries user-id (:db/id updated-entry)] updated-entry)
-    ::effects/navigate-to "/"}))
+    ::effects/navigate-to (if user-id (str "/users/" user-id "/entries") "/")}))
 
 (re-frame/reg-event-fx
  ::delete-entry

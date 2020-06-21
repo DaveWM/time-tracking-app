@@ -85,9 +85,15 @@
                                        [:div description]
                                        [:div.uk-text-muted.uk-text-small duration-string]]
                                       [:div.time-entry__controls
-                                       [:a.uk-button.uk-button-default {:href (str "/entries/" id)} "Edit"]
+                                       [:a.uk-button.uk-button-default
+                                        {:href (if user-id
+                                                 (str "/users/" user-id "/entries/" id)
+                                                 (str "/entries/" id))}
+                                        "Edit"]
                                        [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-entry user-id id])} "Delete"]]]))))]]))))
-       [:a.uk-button.uk-button-primary {:href "/entries/new"} "New Entry"]
+       [:a.uk-button.uk-button-primary {:href (if user-id
+                                                (str "/users/" user-id "/entries/new")
+                                                "/entries/new")} "New Entry"]
        (when-not (empty? @time-sheet-entries)
          [:button.uk-button.uk-button-default {:on-click #(re-frame/dispatch [::events/export-time-sheet user-id])} "Export as HTML"])])))
 
@@ -139,11 +145,11 @@
         [:button.uk-button.uk-button-primary "Register"]]])))
 
 (defn time-entry-form [id submit-btn-label submit-event {:keys [description duration-hours duration-mins start]}]
-  [:form.uk-form-stacked {:on-submit #(do (re-frame/dispatch [submit-event {:description @description
-                                                                            :duration-hours @duration-hours
-                                                                            :duration-mins @duration-mins
-                                                                            :start @start
-                                                                            :id id}])
+  [:form.uk-form-stacked {:on-submit #(do (re-frame/dispatch (conj submit-event {:description @description
+                                                                                 :duration-hours @duration-hours
+                                                                                 :duration-mins @duration-mins
+                                                                                 :start @start
+                                                                                 :id id}))
                                           (.preventDefault %))}
    [form-input "Description" description]
    [form-input "Duration - Hours" duration-hours {:type "number"
@@ -162,18 +168,18 @@
                    :on-change #(reset! start %)}]]]
    [:button.uk-button.uk-button-primary submit-btn-label]])
 
-(defn create-entry-page []
+(defn create-entry-page [user-id]
   (let [description (r/atom nil)
         duration-hours (r/atom 0)
         duration-mins (r/atom 0)
         start (r/atom nil)]
-    [time-entry-form nil "Create" ::events/create-entry {:description description
-                                                         :duration-hours duration-hours
-                                                         :duration-mins duration-mins
-                                                         :start start}]))
+    [time-entry-form nil "Create" [::events/create-entry user-id] {:description description
+                                                                   :duration-hours duration-hours
+                                                                   :duration-mins duration-mins
+                                                                   :start start}]))
 
-(defn edit-entry-page [id]
-  (if-let [entry @(re-frame/subscribe [::subs/time-entry id])]
+(defn edit-entry-page [user-id id]
+  (if-let [entry @(re-frame/subscribe [::subs/time-entry user-id id])]
     (let [description (r/atom (:entry/description entry))
           duration-hours (r/atom (-> (:entry/duration entry)
                                      (quot (* 1000 60 60))))
@@ -181,10 +187,10 @@
                                     (quot (* 1000 60))
                                     (rem 60)))
           start (r/atom (tc/to-date (tc/from-string (:entry/start entry))))]
-      [time-entry-form id "Update" ::events/update-entry {:description description
-                                                          :duration-hours duration-hours
-                                                          :duration-mins duration-mins
-                                                          :start start}])
+      [time-entry-form id "Update" [::events/update-entry user-id] {:description description
+                                                                    :duration-hours duration-hours
+                                                                    :duration-mins duration-mins
+                                                                    :start start}])
     spinner))
 
 
@@ -282,13 +288,15 @@
     :home [time-entries-page nil]
     :login [login-page]
     :register [register-page]
-    :create-entry [create-entry-page]
-    :edit-entry [edit-entry-page (:id route-params)]
+    :create-entry [create-entry-page nil]
+    :edit-entry [edit-entry-page nil (:id route-params)]
     :settings [settings-page]
     :users [users-page]
     :create-user [create-user-page]
     :edit-user [edit-user-page (:id route-params)]
-    :user-entries [time-entries-page (:id route-params)]
+    :user-entries [time-entries-page (:user-id route-params)]
+    :create-user-entry [create-entry-page (:user-id route-params)]
+    :edit-user-entry [edit-entry-page (:user-id route-params) (:id route-params)]
     :not-found [:p "Page not found!"]
     :not-authorized [not-authorized-page]
     [:div]))
