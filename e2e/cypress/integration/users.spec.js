@@ -25,7 +25,7 @@ describe('User management test', () => {
 
     it('should be able to edit a user', () => {
         cy.visit('/users');
-        cy.get('.users-list__item .uk-button').contains('edit', {matchCase: false}).first().click();
+        cy.get('.users-list__item').filter(':contains("test")').first().find('.uk-button').contains('edit', {matchCase: false}).first().click();
 
         cy.get('#Email').type('a'); // add an extra character to the end of the email
 
@@ -38,7 +38,7 @@ describe('User management test', () => {
         cy.visit('/users');
 
         cy.get('.users-list__item').its('length').then(numRows => {
-            cy.get('.users-list__item').get('.uk-button-danger').first().click();
+            cy.get('.users-list__item').filter(':contains("test")').first().find('.uk-button-danger').first().click();
 
             cy.get('.users-list__item').should('have.length', numRows - 1);
         });

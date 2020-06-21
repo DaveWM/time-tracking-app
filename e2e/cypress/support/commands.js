@@ -11,19 +11,12 @@
 
 Cypress.Commands.add("login", () => {
     const email = 'admin@gmail.com';
-    const pass = 'password123';
+    const password = 'password123';
 
-    cy.visit('/login');
-
-    cy.get('#Email')
-        .type(email);
-
-    cy.get('#Password')
-        .type(pass);
-
-    cy.get('form').submit();
-
-    return cy.url().should('eq', Cypress.config().baseUrl);
+    return cy.request('POST', 'http://localhost:8081/login', {email, password})
+        .then(response => {
+            window.localStorage.setItem('auth-token', response.body.token);
+        });
 });
 
 Cypress.Commands.add("setup", () => {
