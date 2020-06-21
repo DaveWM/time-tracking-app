@@ -103,7 +103,7 @@
               existing-user (d/pull db '[* {:user/role [:db/ident]}] id)
               updated-user {:db/id id
                             :user/email (:email body)
-                            :user/password (buddy.hashers/derive (:password body))
+                            :user/password (when (:password body) (buddy.hashers/derive (:password body)))
                             :user/role (mapv #(-> {:db/ident (keyword %)}) (:roles body))}]
           (if (some? (:user/email existing-user))
             (do @(d/transact datomic/conn (datomic/->transactions
