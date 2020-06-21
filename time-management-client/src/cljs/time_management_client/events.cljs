@@ -196,7 +196,9 @@
  ::delete-entry
  (fn-traced [{:keys [db]} [_ user-id id]]
    {:http-xhrio {:method :delete
-                 :uri (str config/api-url "/time-sheet/" id)
+                 :uri (if user-id
+                        (str config/api-url "/users/" user-id "/time-sheet/" id)
+                        (str config/api-url "/time-sheet/" id))
                  :format (ajax/json-request-format)
                  :response-format (ajax/json-response-format {:keywords? true})
                  :headers (auth-header (:auth-token db))
