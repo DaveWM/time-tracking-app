@@ -7,7 +7,34 @@
             [time-management-api.test-utils :as u]
             [time-management-api.datomic :as datomic]
             [time-management-api.config :refer [config]]
-            [time-management-api.auth :as auth]))
+            [time-management-api.auth :as auth]
+            [datomock.core :as dm]
+            [clj-time.coerce :as tc])
+  (:import (java.util Date)))
+
+(defn with-auth-header
+  ([request user-id]
+   (with-auth-header request user-id #{:role/user :role/manager :role/admin}))
+  ([request user-id roles]
+   (let [token (auth/create-token {:db/id user-id
+                                   :user/email "testing"
+                                   :user/role roles})]
+     (mock/header request "Authorization" (str "Token " token)))))
+
+(def admin-user-id 123)
+(def admin-user-txs
+  [[:db/add admin-user-id :user/email "test@gmail.com"]
+   [:db/add admin-user-id :user/password (buddy.hashers/derive "password123")]
+   [:db/add admin-user-id :user/role :role/user]
+   [:db/add admin-user-id :user/role :role/manager]
+   [:db/add admin-user-id :user/role :role/admin]])
+
+(def normal-user-id 234)
+(def normal-user-txs
+  [[:db/add normal-user-id :user/email "normal@gmail.com"]
+   [:db/add normal-user-id :user/password (buddy.hashers/derive "password1234")]
+   [:db/add normal-user-id :user/role :role/user]])
+
 
 (deftest basic-tests
   (testing "main route"
@@ -22,19 +49,21 @@
 (deftest register-tests
   (let [mock-conn (u/mock-conn)]
     (with-redefs [datomic/conn mock-conn]
-      (let [response (sut/app (-> (mock/request :post "/register")
-                                  (mock/json-body {:email "test@gmail.com"
-                                                   :password "password123"})))]
-        (is (= 200 (:status response)))
-        (is (= 1 (->> (d/q '[:find ?e
-                             :where [?e :user/email]]
-                           (d/db mock-conn))
-                      count))))
+      (testing "valid credentials"
+        (let [response (sut/app (-> (mock/request :post "/register")
+                                    (mock/json-body {:email "test@gmail.com"
+                                                     :password "password123"})))]
+          (is (= 200 (:status response)))
+          (is (= 1 (->> (d/q '[:find ?e
+                               :where [?e :user/email]]
+                             (d/db mock-conn))
+                        count)))))
 
-      (let [bad-response (sut/app (-> (mock/request :post "/register")
-                                      (mock/json-body {:email "invalid"
-                                                       :password "invalid"})))]
-        (is (= 400 (:status bad-response)))))))
+      (testing "invalid credentials"
+        (let [bad-response (sut/app (-> (mock/request :post "/register")
+                                        (mock/json-body {:email "invalid"
+                                                         :password "invalid"})))]
+          (is (= 400 (:status bad-response))))))))
 
 (deftest login-tests
   (let [mock-conn (u/mock-conn)
@@ -54,3 +83,264 @@
         (is (some? token))
         (is (int? (:user-id decoded-token)))
         (is (= ["role/admin"] (:roles decoded-token)))))))
+
+(deftest settings-tests
+  (let [mock-conn (u/mock-conn)]
+    @(d/transact mock-conn (concat
+                            admin-user-txs
+                            [[:db/add admin-user-id :settings/preferred-working-hours 5]]))
+    (with-redefs [datomic/conn mock-conn]
+      (testing "GET"
+        (let [response (-> (sut/app (-> (mock/request :get "/settings")
+                                        (with-auth-header admin-user-id)))
+                           (update :body cheshire.core/parse-string keyword))]
+          (is (= 200 (:status response)))
+          (is (= 5 (:settings/preferred-working-hours (:body response))))))
+      (testing "PUT"
+        (let [response (-> (sut/app (-> (mock/request :put "/settings")
+                                        (mock/json-body {:preferred-working-hours 6})
+                                        (with-auth-header admin-user-id)))
+                           (update :body cheshire.core/parse-string keyword))]
+          (is (= 6 (d/q '[:find ?pwh .
+                          :in $ ?u
+                          :where [?u :settings/preferred-working-hours ?pwh]]
+                        (d/db mock-conn) admin-user-id))))))))
+
+(deftest users-tests
+  (let [mock-conn (u/mock-conn)]
+    @(d/transact mock-conn admin-user-txs)
+    (testing "GET"
+      (let [forked-conn (dm/fork-conn mock-conn)]
+        (with-redefs [datomic/conn forked-conn]
+          (let [response (-> (sut/app (-> (mock/request :get "/users")
+                                          (with-auth-header admin-user-id)))
+                             (update :body cheshire.core/parse-string keyword))
+                users (get-in response [:body :users])]
+            (is (= 1 (count users)))
+            (is (= admin-user-id (:db/id (first users)))))
+
+          (testing "not accessible without manager role"
+            @(d/transact forked-conn [[:db/retract admin-user-id :user/role :role/manager]])
+            (let [response (sut/app (-> (mock/request :get "/users")
+                                        (with-auth-header admin-user-id #{:role/user :role/admin})))]
+              (is (= 403 (:status response))))))))
+
+    (testing "DELETE"
+      (let [forked-conn (dm/fork-conn mock-conn)]
+        (with-redefs [datomic/conn forked-conn]
+          (let [response (-> (sut/app (-> (mock/request :delete (str "/users/" admin-user-id))
+                                          (with-auth-header admin-user-id)))
+                             (update :body cheshire.core/parse-string keyword))]
+            (is (zero? (count (d/q '[:find ?u
+                                     :where [?u :user/email]]
+                                   (d/db forked-conn)))))))))
+
+    (testing "POST"
+      (let [forked-conn (dm/fork-conn mock-conn)]
+        (with-redefs [datomic/conn forked-conn]
+          (let [email "second-user@gmail.com"
+                password "password123"
+                response (-> (sut/app (-> (mock/request :post "/users")
+                                          (mock/json-body {:email email
+                                                           :password password
+                                                           :roles #{:role/user}})
+                                          (with-auth-header admin-user-id)))
+                             (update :body cheshire.core/parse-string keyword))]
+            (is (= 2 (count (d/q '[:find ?u
+                                   :where [?u :user/email]]
+                                 (d/db forked-conn)))))
+            (let [new-user (d/q '[:find (pull ?u [* {:user/role [:db/ident]}]) .
+                                  :in $ ?email
+                                  :where [?u :user/email ?email]]
+                                (d/db forked-conn) email)]
+              (is (some? new-user))
+              (is (buddy.hashers/check password (:user/password new-user)))
+              (is (= #{{:db/ident :role/user}} (set (:user/role new-user)))))))))
+
+    (testing "PUT"
+      (let [forked-conn (dm/fork-conn mock-conn)]
+        (with-redefs [datomic/conn forked-conn]
+          (let [email "new-email@gmail.com"
+                password "password12345"
+                response (-> (sut/app (-> (mock/request :put (str "/users/" admin-user-id))
+                                          (mock/json-body {:email email
+                                                           :password password
+                                                           :roles #{:role/user}})
+                                          (with-auth-header admin-user-id)))
+                             (update :body cheshire.core/parse-string keyword))]
+            (is (= 1 (count (d/q '[:find ?u
+                                   :where [?u :user/email]]
+                                 (d/db forked-conn)))))
+            (let [admin-user (d/q '[:find (pull ?u [* {:user/role [:db/ident]}]) .
+                                    :in $ ?email
+                                    :where [?u :user/email ?email]]
+                                  (d/db forked-conn) email)]
+              (is (some? admin-user))
+              (is (buddy.hashers/check password (:user/password admin-user)))
+              (is (= #{{:db/ident :role/user}} (set (:user/role admin-user)))))))))))
+
+
+(deftest time-sheet-tests
+  (let [mock-conn (u/mock-conn)
+        start (Date. 120 5 6)
+        description "some description"
+        duration 12345
+        entry-id (-> @(d/transact mock-conn (concat
+                                             admin-user-txs
+                                             [[:db/add "entry" :entry/description description]
+                                              [:db/add "entry" :entry/start start]
+                                              [:db/add "entry" :entry/duration duration]
+                                              [:db/add "entry" :user/id admin-user-id]]))
+                     (get-in [:tempids "entry"]))]
+    (testing "GET"
+      (with-redefs [datomic/conn mock-conn]
+        (let [response (-> (sut/app (-> (mock/request :get "/time-sheet")
+                                        (with-auth-header admin-user-id)))
+                           (update :body cheshire.core/parse-string keyword))
+              entries (:time-sheet-entries (:body response))]
+          (is (= 1 (count entries)))
+          (is (= entry-id (:db/id (first entries))))
+          (is (= start (tc/to-date (:entry/start (first entries)))))
+          (is (= description (:entry/description (first entries))))
+          (is (= duration (:entry/duration (first entries))))))
+
+      (testing "not accessible without auth token"
+        (let [response (sut/app (mock/request :get "/time-sheet"))]
+          (is (= 401 (:status response))))))
+
+    (testing "POST"
+      (with-redefs [datomic/conn mock-conn]
+        (let [desc "another entry"
+              duration 123456
+              start (Date. 120 1 1)
+              response (-> (sut/app (-> (mock/request :post "/time-sheet")
+                                        (mock/json-body {:description desc
+                                                         :duration duration
+                                                         :start (tc/to-string start)})
+                                        (with-auth-header admin-user-id)))
+                           (update :body cheshire.core/parse-string keyword))
+              entry (d/q '[:find (pull ?e [*]) .
+                           :in $ ?desc
+                           :where [?e :entry/description ?desc]]
+                         (d/db mock-conn) desc)]
+          (is (= 200 (:status response)))
+          (is (not= entry-id (:db/id entry)))
+          (is (= desc (:entry/description entry)))
+          (is (= duration (:entry/duration entry)))
+          (is (= start (:entry/start entry)))
+          (is (= admin-user-id (:db/id (:user/id entry)))))))
+
+    (testing "PUT"
+      (with-redefs [datomic/conn mock-conn]
+        (let [desc "different description"
+              duration 56789
+              start (Date. 120 2 3)
+              response (-> (sut/app (-> (mock/request :put (str "/time-sheet/" entry-id))
+                                        (mock/json-body {:description desc
+                                                         :duration duration
+                                                         :start (tc/to-string start)})
+                                        (with-auth-header admin-user-id)))
+                           (update :body cheshire.core/parse-string keyword))
+              entry (d/pull (d/db mock-conn) '[*] entry-id)]
+          (is (= 200 (:status response)))
+          (is (= desc (:entry/description entry)))
+          (is (= duration (:entry/duration entry)))
+          (is (= start (:entry/start entry))))))
+
+    (testing "DELETE"
+      (with-redefs [datomic/conn mock-conn]
+        (let [response (-> (sut/app (-> (mock/request :delete (str "/time-sheet/" entry-id))
+                                        (with-auth-header admin-user-id)))
+                           (update :body cheshire.core/parse-string keyword))
+              entry (d/q '[:find ?e .
+                           :in $ ?e
+                           :where [?e :entry/description]]
+                         (d/db mock-conn) entry-id)]
+          (is (= 200 (:status response)))
+          (is (nil? entry)))))))
+
+
+(deftest user-time-sheet-tests
+  (let [mock-conn (u/mock-conn)
+        start (Date. 120 5 6)
+        description "some description"
+        duration 12345
+        entry-id (-> @(d/transact mock-conn (concat
+                                             admin-user-txs
+                                             normal-user-txs
+                                             [[:db/add "entry" :entry/description description]
+                                              [:db/add "entry" :entry/start start]
+                                              [:db/add "entry" :entry/duration duration]
+                                              [:db/add "entry" :user/id normal-user-id]]))
+                     (get-in [:tempids "entry"]))]
+    (testing "GET"
+      (with-redefs [datomic/conn mock-conn]
+        (let [response (-> (sut/app (-> (mock/request :get (str "/users/" normal-user-id "/time-sheet"))
+                                        (with-auth-header admin-user-id)))
+                           (update :body cheshire.core/parse-string keyword))
+              entries (:time-sheet-entries (:body response))]
+          (is (= 1 (count entries)))
+          (is (= entry-id (:db/id (first entries))))
+          (is (= start (tc/to-date (:entry/start (first entries)))))
+          (is (= description (:entry/description (first entries))))
+          (is (= duration (:entry/duration (first entries))))))
+
+      (testing "not accessible without auth token"
+        (let [response (sut/app (mock/request :get (str "/users/" normal-user-id "/time-sheet")))]
+          (is (= 401 (:status response)))))
+
+      (testing "not without admin role"
+        (let [response (sut/app (-> (mock/request :get (str "/users/" normal-user-id "/time-sheet"))
+                                    (with-auth-header normal-user-id #{:role/user})))]
+          (is (= 403 (:status response))))))
+
+    (testing "POST"
+      (with-redefs [datomic/conn mock-conn]
+        (let [desc "another entry"
+              duration 123456
+              start (Date. 120 1 1)
+              response (-> (sut/app (-> (mock/request :post (str "/users/" normal-user-id "/time-sheet"))
+                                        (mock/json-body {:description desc
+                                                         :duration duration
+                                                         :start (tc/to-string start)})
+                                        (with-auth-header admin-user-id)))
+                           (update :body cheshire.core/parse-string keyword))
+              entry (d/q '[:find (pull ?e [*]) .
+                           :in $ ?desc
+                           :where [?e :entry/description ?desc]]
+                         (d/db mock-conn) desc)]
+          (is (= 200 (:status response)))
+          (is (not= entry-id (:db/id entry)))
+          (is (= desc (:entry/description entry)))
+          (is (= duration (:entry/duration entry)))
+          (is (= start (:entry/start entry))))))
+
+    (testing "PUT"
+      (with-redefs [datomic/conn mock-conn]
+        (let [desc "different description"
+              duration 56789
+              start (Date. 120 2 3)
+              response (-> (sut/app (-> (mock/request :put (str "/users/" normal-user-id "/time-sheet/" entry-id))
+                                        (mock/json-body {:description desc
+                                                         :duration duration
+                                                         :start (tc/to-string start)})
+                                        (with-auth-header admin-user-id)))
+                           (update :body cheshire.core/parse-string keyword))
+              entry (d/pull (d/db mock-conn) '[*] entry-id)]
+          (is (= 200 (:status response)))
+          (is (= desc (:entry/description entry)))
+          (is (= duration (:entry/duration entry)))
+          (is (= start (:entry/start entry)))
+          (is (= normal-user-id (:db/id (:user/id entry)))))))
+
+    (testing "DELETE"
+      (with-redefs [datomic/conn mock-conn]
+        (let [response (-> (sut/app (-> (mock/request :delete (str "/users/" normal-user-id "/time-sheet/" entry-id))
+                                        (with-auth-header admin-user-id)))
+                           (update :body cheshire.core/parse-string keyword))
+              entry (d/q '[:find ?e .
+                           :in $ ?e
+                           :where [?e :entry/description]]
+                         (d/db mock-conn) entry-id)]
+          (is (= 200 (:status response)))
+          (is (nil? entry)))))))
