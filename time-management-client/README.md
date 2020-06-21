@@ -1,9 +1,13 @@
 # time-management-client
 
-A [re-frame](https://github.com/day8/re-frame) application designed to ... well, that part is up to
-you.
+Made using [re-frame](https://github.com/day8/re-frame).
 
 ## Getting Started
+
+* Make sure the api is running
+* Run `lein do less once, minify-assets`
+* Run `lein dev`
+* Open http://localhost:8280 in a browser
 
 ### Project Overview
 
