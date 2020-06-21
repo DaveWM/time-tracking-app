@@ -170,9 +170,9 @@
 (def app
   (-> app-routes
       (mw/wrap-exception-handling)
-      (wrap-defaults api-defaults)
       (wrap-json-response)
       (wrap-json-body {:keywords? true :bigdecimals? true})
+      (wrap-defaults api-defaults)
       (wrap-cors :access-control-allow-origin [#".*"]
                  :access-control-allow-methods [:get :put :post :delete])
       (wrap-with-logger)))

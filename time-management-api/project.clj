@@ -23,5 +23,6 @@
   :main time-management-api.core
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
-                        [ring/ring-mock "0.3.2"]]}
+                        [ring/ring-mock "0.3.2"]
+                        [vvvvalvalval/datomock "0.2.2"]]}
    :uberjar {:aot :all}})

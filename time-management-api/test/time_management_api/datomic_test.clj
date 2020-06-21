@@ -6,7 +6,7 @@
 
 (deftest schema-test
   ;; will fail if an exception is thrown
-  (is @(d/transact u/mock-conn sut/schema)))
+  (is @(d/transact (u/mock-conn) sut/schema)))
 
 (deftest ->transactions-test
   (let [eid 0]
@@ -51,7 +51,7 @@
 
 
 (deftest user-db-test
-  (let [{:keys [tempids db-after]} (-> (d/db u/mock-conn)
+  (let [{:keys [tempids db-after]} (-> (d/db (u/mock-conn))
                                        (d/with [[:db/add "user" :user/email "email"]
                                                 [:db/add "other-user" :user/email "another user"]
                                                 [:db/add "entry" :user/id "user"]

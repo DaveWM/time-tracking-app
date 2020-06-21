@@ -5,7 +5,7 @@
             [datomic.api :as d]))
 
 (deftest no-day-more-than-24-hours?-test
-  (let [db (d/db u/mock-conn)
+  (let [db (d/db (u/mock-conn))
         valid-db (:db-after
                   (d/with db
                           [[:db/add "entry" :entry/description "valid"]

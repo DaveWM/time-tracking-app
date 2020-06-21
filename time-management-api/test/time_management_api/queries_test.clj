@@ -8,7 +8,7 @@
 
 
 (deftest get-user-by-email-test
-  (let [db (-> (d/db u/mock-conn)
+  (let [db (-> (d/db (u/mock-conn))
                (d/with
                 [[:db/add "user" :user/email "email"]
                  [:db/add "user" :user/password "password"]
@@ -25,7 +25,7 @@
 (deftest get-user-by-id-test
   (let [{db :db-after
          tempids :tempids}
-        (-> (d/db u/mock-conn)
+        (-> (d/db (u/mock-conn))
             (d/with
              [[:db/add "user" :user/email "email"]
               [:db/add "user" :user/password "password"]
@@ -43,7 +43,7 @@
 
 (deftest get-timesheet-entries-test
   (let [start-date (Date.)
-        db (-> (d/db u/mock-conn)
+        db (-> (d/db (u/mock-conn))
                (d/with
                 [[:db/add "entry" :entry/description "description"]
                  [:db/add "entry" :entry/start start-date]
@@ -60,7 +60,7 @@
   (let [start-date (Date.)
         {db :db-after
          tempids :tempids}
-        (-> (d/db u/mock-conn)
+        (-> (d/db (u/mock-conn))
             (d/with
              [[:db/add "entry" :entry/description "description"]
               [:db/add "entry" :entry/start start-date]
@@ -76,7 +76,7 @@
     (is (= 12345 duration))))
 
 (deftest get-settings-test
-  (let [db (-> (d/db u/mock-conn)
+  (let [db (-> (d/db (u/mock-conn))
                (d/with [[:db/add "user" :user/email "email"]
                         [:db/add "user" :settings/preferred-working-hours 5]])
                :db-after)
@@ -84,7 +84,7 @@
     (is (= 5 (:settings/preferred-working-hours result)))))
 
 (deftest get-all-users-test
-  (let [db (-> (d/db u/mock-conn)
+  (let [db (-> (d/db (u/mock-conn))
                (d/with [[:db/add "user" :user/email "email"]
                         [:db/add "user" :user/role :role/user]])
                :db-after)
