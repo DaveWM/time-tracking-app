@@ -1,0 +1,4 @@
+{:mvn/repos
+ {"my.datomic.com" {:url "https://my.datomic.com/repo"}}
+ :deps
+ {com.datomic/datomic-pro {:mvn/version "0.9.5951"}}}

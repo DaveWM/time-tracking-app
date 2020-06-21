@@ -10,7 +10,7 @@
 
 
 Cypress.Commands.add("login", () => {
-    const email = 'test@gmail.com';
+    const email = 'admin@gmail.com';
     const pass = 'password123';
 
     cy.visit('/login');
@@ -24,4 +24,9 @@ Cypress.Commands.add("login", () => {
     cy.get('form').submit();
 
     return cy.url().should('eq', Cypress.config().baseUrl);
+});
+
+Cypress.Commands.add("setup", () => {
+    // hide re-frame-10x sidebar
+    window.localStorage.setItem("day8.re-frame-10x.show-panel","\"false\"");
 });

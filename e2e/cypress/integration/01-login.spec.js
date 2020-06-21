@@ -1,12 +1,11 @@
 describe('Register test', () => {
-    const email = 'test@gmail.com';
     const pass = 'password123';
 
     it('Registers a new user', () => {
         cy.visit('/register')
 
         cy.get('#Email')
-            .type(email);
+            .type(`test${Math.floor(Math.random() * 1000)}@gmail.com`);
 
         cy.get('#Password')
             .type(pass);
@@ -21,7 +20,7 @@ describe('Register test', () => {
         cy.visit('/login');
 
         cy.get('#Email')
-            .type(email);
+            .type('admin@gmail.com');
 
         cy.get('#Password')
             .type(pass);

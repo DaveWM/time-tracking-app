@@ -1,6 +1,6 @@
 describe('Home page test', () => {
     beforeEach(() => {
-        return cy.login();
+        return cy.setup().then(() => cy.login());
     });
 
     it('Should be able to add a new time entry', () => {

@@ -1,6 +1,6 @@
 describe('Settings page test', () => {
     beforeEach(() => {
-        return cy.login();
+        return cy.setup().then(() => cy.login());
     });
 
     it('Should be able to set your preferred working hours', () => {
