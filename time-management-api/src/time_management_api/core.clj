@@ -22,7 +22,8 @@
             [time-management-api.queries :as queries]
             [time-management-api.middleware :as mw]
             [time-management-api.utils :as u]
-            [time-management-api.validation :as validation]))
+            [time-management-api.validation :as validation])
+  (:gen-class))
 
 (defn create-user! [{:keys [email password roles] :as body}]
   (if (s/valid? :request/create-user body)

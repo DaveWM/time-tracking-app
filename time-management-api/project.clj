@@ -15,11 +15,13 @@
                  [buddy/buddy-auth "2.2.0"]
                  [buddy/buddy-hashers "1.4.0"]
                  [aero "1.1.6"]
-                 [com.datomic/datomic-pro "0.9.5951"]]
+                 [com.datomic/datomic-pro "0.9.5951"]
+                 [clj-time "0.15.2"]]
   :repositories {"my.datomic.com" {:url "https://my.datomic.com/repo"
                                    :username [:gpg :env/datomic_username]
                                    :password [:gpg :env/datomic_password]}}
   :main time-management-api.core
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
-                        [ring/ring-mock "0.3.2"]]}})
+                        [ring/ring-mock "0.3.2"]]}
+   :uberjar {:aot :all}})
