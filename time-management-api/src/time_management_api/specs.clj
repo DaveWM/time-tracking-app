@@ -81,5 +81,6 @@
 
 (defphraser :default
   [_ problem]
-  (str (or (:val problem) "nil") " is not a valid value for the " (name (first (:in problem))) " field."))
+  (let [first-problem (first (:in problem))]
+    (str (or (:val problem) "nil") " is not a valid value for the " (if first-problem (name first-problem) "*unknown*") " field.")))
 
