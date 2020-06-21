@@ -1,16 +1,14 @@
 (ns time-management-api.queries-test
   (:require [clojure.test :refer :all]
             [datomic.api :as d]
+            [time-management-api.test-utils :as u]
             [time-management-api.queries :as sut])
   (:import (java.util Date)))
 
-(def mock-conn
-  (let [uri "datomic:mem://mock"]
-    (d/create-database uri)
-    (d/connect uri)))
+
 
 (deftest get-user-by-email-test
-  (let [db (-> (d/db mock-conn)
+  (let [db (-> (d/db u/mock-conn)
                (d/with
                 [[:db/add "user" :user/email "email"]
                  [:db/add "user" :user/password "password"]
@@ -27,7 +25,7 @@
 (deftest get-user-by-id-test
   (let [{db :db-after
          tempids :tempids}
-        (-> (d/db mock-conn)
+        (-> (d/db u/mock-conn)
             (d/with
              [[:db/add "user" :user/email "email"]
               [:db/add "user" :user/password "password"]
@@ -45,7 +43,7 @@
 
 (deftest get-timesheet-entries-test
   (let [start-date (Date.)
-        db (-> (d/db mock-conn)
+        db (-> (d/db u/mock-conn)
                (d/with
                 [[:db/add "entry" :entry/description "description"]
                  [:db/add "entry" :entry/start start-date]
@@ -62,7 +60,7 @@
   (let [start-date (Date.)
         {db :db-after
          tempids :tempids}
-        (-> (d/db mock-conn)
+        (-> (d/db u/mock-conn)
             (d/with
              [[:db/add "entry" :entry/description "description"]
               [:db/add "entry" :entry/start start-date]
@@ -78,7 +76,7 @@
     (is (= 12345 duration))))
 
 (deftest get-settings-test
-  (let [db (-> (d/db mock-conn)
+  (let [db (-> (d/db u/mock-conn)
                (d/with [[:db/add "user" :user/email "email"]
                         [:db/add "user" :settings/preferred-working-hours 5]])
                :db-after)
@@ -86,7 +84,7 @@
     (is (= 5 (:settings/preferred-working-hours result)))))
 
 (deftest get-all-users-test
-  (let [db (-> (d/db mock-conn)
+  (let [db (-> (d/db u/mock-conn)
                (d/with [[:db/add "user" :user/email "email"]
                         [:db/add "user" :user/role :role/user]])
                :db-after)
