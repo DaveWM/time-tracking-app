@@ -276,7 +276,10 @@
 (re-frame/reg-event-db
  ::received-users
  (fn-traced [db [_ {:keys [users]}]]
-   (assoc db :users (->> users (map #(update % :user/role (partial map keyword))))
+   (assoc db :users (->> users
+                         (map #(update % :user/role (partial map keyword)))
+                         (map #(-> [(:db/id %) %]))
+                         (into {}))
              :loading false)))
 
 (re-frame/reg-event-fx
@@ -293,9 +296,7 @@
 (re-frame/reg-event-db
  ::user-deleted
  (fn-traced [db [_ {:keys [db/id]}]]
-   (update db :users
-           (partial remove (fn [entry]
-                             (= id (:db/id entry)))))))
+   (update db :users #(dissoc % id))))
 
 (re-frame/reg-event-fx
  ::create-user

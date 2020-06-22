@@ -42,11 +42,9 @@
 (re-frame/reg-sub
  ::all-users
  (fn [db _]
-   (:users db)))
+   (vals (:users db))))
 
 (re-frame/reg-sub
  ::user
  (fn [db [_ id]]
-   (->> (:users db)
-        (filter #(= id (:db/id %)))
-        first)))
+   (get (:users db) id)))
