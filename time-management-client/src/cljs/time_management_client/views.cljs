@@ -297,7 +297,7 @@
     :settings [settings-page]
     :users [users-page]
     :create-user [create-user-page]
-    :edit-user [edit-user-page (:id route-params)]
+    :edit-user [edit-user-page (:user-id route-params)]
     :user-entries [time-entries-page (:user-id route-params)]
     :create-user-entry [create-entry-page (:user-id route-params)]
     :edit-user-entry [edit-entry-page (:user-id route-params) (:id route-params)]

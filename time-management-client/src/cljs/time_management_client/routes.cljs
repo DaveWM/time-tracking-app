@@ -12,7 +12,7 @@
                    ["/" [long :id]] :edit-entry}
         "settings" :settings
         "users" {"/new" :create-user
-                 ["/" [long :id]] :edit-user
+                 ["/" [long :user-id]] :edit-user
                  ["/" [long :user-id] "/entries"] {"/new" :create-user-entry
                                                    ["/" [long :id]] :edit-user-entry
                                                    "" :user-entries}
