@@ -14,7 +14,8 @@
    [time-management-client.coeffects :as coeffects]
    [time-management-client.config :as config]
    [time-management-client.routes :as routes]
-   [time-management-client.utils :as u]))
+   [time-management-client.utils :as u]
+   [time-management-client.macros :refer [def-event-fx def-event-db]]))
 
 (defn auth-header [token]
   [:Authorization (str "Token " token)])
@@ -59,13 +60,13 @@
                                   :on-failure [::request-failed]}}
       {:db db})))
 
-(re-frame/reg-event-fx
+(def-event-fx
   ::initialize-db
   [(re-frame/inject-cofx ::coeffects/auth-token)]
   (fn-traced [{:keys [auth-token]} _]
     {:db (assoc db/default-db :auth-token auth-token)}))
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::set-page
  (fn-traced [{:keys [db]} [_ page route-params]]
    (let [token (:auth-token db)
@@ -81,7 +82,7 @@
        :else {:db (assoc db :page :not-authorized)}))))
 
 
-(re-frame/reg-event-fx
+(def-event-fx
   ::register
   (fn-traced [{:keys [db]} [_ form-data]]
     {:db (assoc db :loading true)
@@ -93,7 +94,7 @@
                   :on-success [::login-success]
                   :on-failure [::request-failed]}}))
 
-(re-frame/reg-event-fx
+(def-event-fx
   ::login
   (fn-traced [{:keys [db]} [_ form-data]]
     {:db (assoc db :loading true)
@@ -106,7 +107,7 @@
                   :on-failure [::request-failed]}}))
 
 
-(re-frame/reg-event-fx
+(def-event-fx
   ::login-success
   (fn-traced [{:keys [db]} [_ response]]
     {:db (-> db
@@ -116,7 +117,7 @@
      ::effects/set-token (:token response)
      ::effects/navigate-to "/"}))
 
-(re-frame/reg-event-fx
+(def-event-fx
   ::request-failed
   (fn-traced [{:keys [db]} [_ {:keys [response status]}]]
     (merge
@@ -126,7 +127,7 @@
       (when (#{401 403} status)
         {::effects/navigate-to "/login"}))))
 
-(re-frame/reg-event-db
+(def-event-db
  ::received-time-sheet
  (fn-traced [db [_ user-id {:keys [time-sheet-entries]}]]
    (-> db
@@ -135,7 +136,7 @@
                                                     (into {})))
        (assoc :loading false))))
 
-(re-frame/reg-event-fx
+(def-event-fx
   ::logout
   (fn-traced [{:keys [db]} _]
     {:db (assoc db :auth-token nil)
@@ -143,7 +144,7 @@
      ::effects/navigate-to "/login"}))
 
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::create-entry
  (fn-traced [{:keys [db]} [_ user-id {:keys [description start duration-hours duration-mins]}]]
    (let [form-data {:description description
@@ -161,14 +162,14 @@
                    :on-success [::entry-created user-id]
                    :on-failure [::request-failed]}})))
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::entry-created
  (fn-traced [{:keys [db]} [_ user-id]]
    {:db db
     ::effects/navigate-to (if user-id (str "/users/" user-id "/entries") "/")}))
 
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::update-entry
  (fn-traced [{:keys [db]} [_ user-id {:keys [id description start duration-hours duration-mins]}]]
    (let [form-data {:description description
@@ -186,13 +187,13 @@
                    :on-success [::entry-updated user-id]
                    :on-failure [::request-failed]}})))
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::entry-updated
  (fn-traced [{:keys [db]} [_ user-id updated-entry]]
    {:db (assoc-in db [:time-sheet-entries user-id (:db/id updated-entry)] updated-entry)
     ::effects/navigate-to (if user-id (str "/users/" user-id "/entries") "/")}))
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::delete-entry
  (fn-traced [{:keys [db]} [_ user-id id]]
    {:http-xhrio {:method :delete
@@ -205,12 +206,12 @@
                  :on-success [::entry-deleted user-id]
                  :on-failure [::request-failed]}}))
 
-(re-frame/reg-event-db
+(def-event-db
  ::entry-deleted
  (fn-traced [db [_ user-id {:keys [db/id]}]]
    (update-in db [:time-sheet-entries user-id] #(dissoc % id))))
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::export-time-sheet
  (fn-traced [{:keys [db]} [_ user-id]]
    {::effects/save-file {:content (hiccup/render-html
@@ -234,25 +235,25 @@
                          :name "time-sheet.html"}}))
 
 
-(re-frame/reg-event-db
+(def-event-db
  ::filter-start-date-updated
  (fn-traced [db [_ updated-date]]
    (assoc-in db [:filters :start-date] updated-date)))
 
-(re-frame/reg-event-db
+(def-event-db
  ::filter-end-date-updated
  (fn-traced [db [_ updated-date]]
    (assoc-in db [:filters :end-date] updated-date)))
 
 
-(re-frame/reg-event-db
+(def-event-db
  ::received-settings
  (fn-traced [db [_ settings]]
    (assoc db :settings settings
              :loading false)))
 
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::update-settings
  (fn-traced [{:keys [db]} [_ {:keys [preferred-working-hours]}]]
    (let [form-data {:preferred-working-hours preferred-working-hours}]
@@ -267,13 +268,13 @@
                    :on-failure [::request-failed]}})))
 
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::settings-updated
  (fn-traced [{:keys [db]} [_ updated-settings]]
    {:db (assoc db :settings updated-settings)
     ::effects/navigate-to "/"}))
 
-(re-frame/reg-event-db
+(def-event-db
  ::received-users
  (fn-traced [db [_ {:keys [users]}]]
    (assoc db :users (->> users
@@ -282,7 +283,7 @@
                          (into {}))
              :loading false)))
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::delete-user
  (fn-traced [{:keys [db]} [_ id]]
    {:http-xhrio {:method :delete
@@ -293,12 +294,12 @@
                  :on-success [::user-deleted]
                  :on-failure [::request-failed]}}))
 
-(re-frame/reg-event-db
+(def-event-db
  ::user-deleted
  (fn-traced [db [_ {:keys [db/id]}]]
    (update db :users #(dissoc % id))))
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::create-user
  (fn-traced [{:keys [db]} [_ {:keys [email password roles]}]]
    (let [form-data {:email email
@@ -314,7 +315,7 @@
                    :on-success [::user-updated]
                    :on-failure [::request-failed]}})))
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::update-user
  (fn-traced [{:keys [db]} [_ {:keys [id email password roles]}]]
    (let [form-data (-> {:email email
@@ -330,7 +331,7 @@
                    :on-success [::user-updated]
                    :on-failure [::request-failed]}})))
 
-(re-frame/reg-event-fx
+(def-event-fx
  ::user-updated
  (fn-traced [{:keys [db]} _]
    {:db db

@@ -6,10 +6,6 @@
             [cljs-time.coerce :as tc]
             [time-management-client.subs :as sut]))
 
-(defn run-sub [db [id :as sub]]
-  (let [handler (re-frame.registrar/get-handler :sub id)]
-    @(handler db sub)))
-
 (deftest page-sub-test
   (let [sub (re-frame/subscribe [::sut/page])]
     (reset! app-db {:page :home :route-params {:id 123}})
