@@ -70,16 +70,16 @@
                           :ns-regexp "-test$"
                           :output-to "target/karma-test.js"}}}
 
-  :aliases {"dev"          ["with-profile" "dev" "do"
-                            ["shadow" "watch" "app"]]
-            "prod"         ["with-profile" "prod" "do"
-                            ["shadow" "release" "app"]]
+  :aliases {"dev" ["with-profile" "dev,test" "do"
+                   ["shadow" "watch" "app"]]
+            "prod" ["with-profile" "prod" "do"
+                    ["shadow" "release" "app"]]
             "build-report" ["with-profile" "prod" "do"
                             ["shadow" "run" "shadow.cljs.build-report" "app" "target/build-report.html"]
                             ["shell" "open" "target/build-report.html"]]
-            "karma"        ["with-profile" "prod" "do"
-                            ["shadow" "compile" "karma-test"]
-                            ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]}
+            "karma" ["with-profile" "test" "do"
+                     ["shadow" "compile" "karma-test"]
+                     ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]}
 
   :profiles
   {:dev
@@ -88,8 +88,10 @@
     :source-paths ["dev"]}
 
    :prod {}
-   
-}
+
+   :test {:dependencies [[hiccup-find "1.0.0"]
+                         [day8.re-frame/test "0.1.5"]]}
+   }
 
   :prep-tasks [["less" "once"]
                ["minify-assets" "once"]])
