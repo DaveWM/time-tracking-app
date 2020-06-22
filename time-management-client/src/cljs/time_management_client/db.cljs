@@ -5,13 +5,13 @@
 (def default-db
   {:auth-token nil
    :loading false
-   :entries nil
+   :time-sheet-entries nil
+   :users nil
    :filters {:start-date nil
              :end-date nil}})
 
 (defn filtered-time-entries [db user-id]
   (let [{:keys [start-date end-date]} (:filters db)]
-    (println (:time-sheet-entries db))
     (->> (get-in db [:time-sheet-entries user-id])
          vals
          (remove #(when start-date
