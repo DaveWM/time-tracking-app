@@ -52,7 +52,9 @@
                                :release {:build-options
                                          {:ns-aliases
                                           {day8.re-frame.tracing day8.re-frame.tracing-stubs}}
-                                         :compiler-options {:closure-defines {time-management-client.config/api-url "http://localhost:8081"}}}
+                                         :compiler-options {:closure-defines {time-management-client.config/api-url "http://localhost:8081"}
+                                                            :externs ["/externs/jwt-decode.ext.js"]
+                                                            :infer-externs :auto}}
 
                                :devtools {:http-root "resources/public"
                                           :http-port 8280

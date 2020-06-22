@@ -70,15 +70,18 @@
  ::set-page
  (fn-traced [{:keys [db]} [_ page route-params]]
    (let [token (:auth-token db)
-         decoded-token (when token (js->clj (jwt-decode token) :keywordize-keys true))
+         decoded-token (when token
+                         (try
+                           (js->clj (jwt-decode token) :keywordize-keys true)
+                           (catch :default e nil)))
          user-roles (->> decoded-token :roles (map keyword) (set))
          route-roles (get routes/page->roles page)]
      (cond
        (clojure.set/subset? route-roles user-roles) (-> (effects-on-page-load page route-params db)
                                                         (assoc-in [:db :page] page)
                                                         (assoc-in [:db :route-params] route-params))
-       (nil? token) {:db db
-                     ::effects/navigate-to "/login"}
+       (nil? decoded-token) {:db db
+                             ::effects/navigate-to "/login"}
        :else {:db (assoc db :page :not-authorized)}))))
 
 
