@@ -4,10 +4,21 @@ Made using [re-frame](https://github.com/day8/re-frame).
 
 ## Getting Started
 
+To get the website running in dev mode:
+
 * Make sure the api is running
-* Run `lein do less once, minify-assets`
 * Run `lein dev`
 * Open http://localhost:8280 in a browser
+
+To run a full prod build:
+
+* Run `lein prod`
+* Start a web server in `/resources/public` - using [local-web-server](https://www.npmjs.com/package/local-web-server) the command is `cd resources/public && ws --compress --spa index.html`
+
+To run the tests:
+ * run `npm install`
+ * run `npm install -g karma-cli` (if you don't already have karma-cli installed) 
+ * run `lein karma`
 
 ### Project Overview
 
