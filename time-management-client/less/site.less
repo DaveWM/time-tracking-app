@@ -2,6 +2,7 @@
 @import (inline) '../node_modules/uikit/dist/css/uikit.css';
 
 @primary-colour: #1e87f0;
+@mobile-width: 720px;
 
 #navbar {
   background-color: @primary-colour;
@@ -34,6 +35,24 @@
 
     .users-list__role {
       margin: 0 3px;
+    }
+
+    @media screen and (max-width: @mobile-width) {
+      .users-list__controls {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+    }
+  }
+}
+
+.time-entry {
+  @media screen and (max-width: @mobile-width) {
+    .time-entry__controls {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
   }
 }

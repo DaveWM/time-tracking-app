@@ -228,7 +228,7 @@
                       [:div
                        (->> role
                             (map #(-> [:span.uk-label.users-list__role (name %)])))]]
-                     [:div
+                     [:div.users-list__controls
                       [:a.uk-button.uk-button-default {:href (str "/users/" id "/entries")} "Time Sheet"]
                       [:a.uk-button.uk-button-default {:href (str "/users/" id)} "Edit"]
                       [:button.uk-button.uk-button-danger {:on-click #(re-frame/dispatch [::events/delete-user id])} "Delete"]]])))]
@@ -317,8 +317,10 @@
           "Time Management App"]]
         [:div.uk-navbar-right
          [:div.uk-navbar-item
-          [:a.uk-button.uk-button-primary {:href "/users"} "Users"]
-          [:a.uk-button.uk-button-primary {:href "/settings"} "Settings"]
+          [:a.uk-button.uk-button-primary {:href "/users"} "Users"]]
+         [:div.uk-navbar-item
+          [:a.uk-button.uk-button-primary {:href "/settings"} "Settings"]]
+         [:div.uk-navbar-item
           [:button.uk-button.uk-button-primary {:on-click #(re-frame/dispatch [::events/logout])} "Log out"]]]]
        [:div.uk-section
         [:div.uk-container.uk-container-large
