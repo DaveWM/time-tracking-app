@@ -23,3 +23,5 @@ You must then update your `.lein/credentials.clj` to:
 Once you have done this, to start the api just run `lein run`. 
 This will start the api on port 8081 by default. To change the port, set the `API_PORT` environment variable. 
 You can also compile to a jar file by running `lein uberjar`.
+
+To run the unit tests, run `lein test`.
