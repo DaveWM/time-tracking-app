@@ -54,10 +54,13 @@
                                     (mock/json-body {:email "test@gmail.com"
                                                      :password "password123"})))]
           (is (= 200 (:status response)))
-          (is (= 1 (->> (d/q '[:find ?e
-                               :where [?e :user/email]]
-                             (d/db mock-conn))
-                        count)))))
+          (is (= 1 (->> (d/q '[:find ?u
+                               :in $ ?email
+                               :where [?u :user/email ?email]
+                               [?u :user/role :role/user]]
+                             (d/db mock-conn) "test@gmail.com")
+                        count)))
+          ))
 
       (testing "invalid credentials"
         (let [bad-response (sut/app (-> (mock/request :post "/register")
