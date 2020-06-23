@@ -224,18 +224,26 @@
                                     [:body
                                      (->> (db/filtered-time-entries db user-id)
                                           (sort-by (comp tc/to-long tc/from-string :entry/start))
-                                          (map (fn [{:keys [entry/start entry/duration entry/description]}]
-                                                 (let [ended-at (t/plus (tc/from-string start) (t/millis duration))
-                                                       interval (t/interval (tc/from-string start) ended-at)
-                                                       started-at-string (tf/unparse (tf/formatter "yyyy.MM.dd") (tc/from-string start))
+                                          (group-by (fn [entry]
+                                                      (u/days-since-epoch (:entry/start entry))))
+                                          (map (fn [[date-in-days entries]]
+                                                 (let [total-time (->> entries
+                                                                       (map :entry/duration)
+                                                                       (reduce + 0))
+                                                       interval (t/interval (t/epoch) (t/plus (t/epoch) (t/millis total-time)))
+                                                       date-string (tf/unparse (tf/formatter "yyyy.MM.dd") (u/from-days-since-epoch date-in-days))
                                                        duration-string (if (zero? (t/in-hours interval))
                                                                          (str (t/in-minutes interval) "m")
                                                                          (str (t/in-hours interval) "h " (mod (t/in-minutes interval) 60) "m"))]
                                                    [:div
                                                     [:ul
-                                                     [:li "Date: " started-at-string]
+                                                     [:li "Date: " date-string]
                                                      [:li "Total Time: " duration-string]
-                                                     [:li "Description: " description]]]))))]])
+                                                     [:li "Notes:"
+                                                      [:ul
+                                                       (->> entries
+                                                            (map (fn [e]
+                                                                   [:li (:entry/description e)])))]]]]))))]])
                          :type "text/html"
                          :name "time-sheet.html"}}))
 

@@ -209,15 +209,22 @@
 
 (deftest export-time-sheet-test
   (testing "for current user"
-    (let [db {:time-sheet-entries {nil {1 {:entry/description "desc"
+    (let [db {:time-sheet-entries {nil {1 {:entry/description "note1"
                                            ;; 2 hours 15 mins
                                            :entry/duration (+ (* 2 1000 60 60)
                                                               (* 15 1000 60))
-                                           :entry/start "2020-01-01"}}}}
+                                           :entry/start "2020-01-02"}
+                                        2 {:entry/description "note2"
+                                           ;; 1 hour 2 mins
+                                           :entry/duration (+ (* 1 1000 60 60)
+                                                              (* 2 1000 60))
+                                           :entry/start "2020-01-02"}}}}
           {:keys [::effects/save-file]} (sut/export-time-sheet {:db db} [::sut/export-time-sheet nil])]
       (is (s/ends-with? (:name save-file) ".html"))
-      (is (s/includes? (:content save-file) "desc"))
-      (is (s/includes? (:content save-file) "2h 15m")))))
+      (is (s/includes? (:content save-file) "2020.01.02"))
+      (is (s/includes? (:content save-file) "3h 17m"))
+      (is (s/includes? (:content save-file) "note1"))
+      (is (s/includes? (:content save-file) "note2")))))
 
 (deftest update-settings-test
   (let [{:keys [db http-xhrio]}
