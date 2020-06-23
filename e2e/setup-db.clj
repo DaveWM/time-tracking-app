@@ -1,4 +1,5 @@
-(require '[datomic.api :as d])
+(require '[datomic.api :as d]
+         '[clojure.java.shell :refer :all])
 
 (println "running...")
 
@@ -14,3 +15,5 @@
                    [:db/add "admin" :user/role :role/admin]])
 
 (println "updated!")
+
+(System/exit 0)
