@@ -177,7 +177,15 @@
                                   (d/db forked-conn) email)]
               (is (some? admin-user))
               (is (buddy.hashers/check password (:user/password admin-user)))
-              (is (= #{{:db/ident :role/user}} (set (:user/role admin-user)))))))))))
+              (is (= #{{:db/ident :role/user}} (set (:user/role admin-user))))))
+
+          (testing "a non-existent user should return a 404"
+            (let [response (-> (sut/app (-> (mock/request :put "/users/1234")
+                                            (mock/json-body {:email "test@test.com"
+                                                             :password "testing123"
+                                                             :roles #{:role/user}})
+                                            (with-auth-header admin-user-id))))]
+              (is (= 404 (:status response))))))))))
 
 
 (deftest time-sheet-tests
@@ -279,20 +287,26 @@
                                         (with-auth-header admin-user-id)))
                            (update :body cheshire.core/parse-string keyword))
               entries (:time-sheet-entries (:body response))]
+          (is (= 200 (:status response)))
           (is (= 1 (count entries)))
           (is (= entry-id (:db/id (first entries))))
           (is (= start (tc/to-date (:entry/start (first entries)))))
           (is (= description (:entry/description (first entries))))
-          (is (= duration (:entry/duration (first entries))))))
+          (is (= duration (:entry/duration (first entries)))))
 
-      (testing "not accessible without auth token"
-        (let [response (sut/app (mock/request :get (str "/users/" normal-user-id "/time-sheet")))]
-          (is (= 401 (:status response)))))
+        (testing "a non-existent user should return a 404"
+          (let [response (-> (sut/app (-> (mock/request :get (str "/users/1234/time-sheet"))
+                                          (with-auth-header admin-user-id))))]
+            (is (= 404 (:status response)))))
 
-      (testing "not without admin role"
-        (let [response (sut/app (-> (mock/request :get (str "/users/" normal-user-id "/time-sheet"))
-                                    (with-auth-header normal-user-id #{:role/user})))]
-          (is (= 403 (:status response))))))
+        (testing "not accessible without auth token"
+          (let [response (sut/app (mock/request :get (str "/users/" normal-user-id "/time-sheet")))]
+            (is (= 401 (:status response)))))
+
+        (testing "not without admin role"
+          (let [response (sut/app (-> (mock/request :get (str "/users/" normal-user-id "/time-sheet"))
+                                      (with-auth-header normal-user-id #{:role/user})))]
+            (is (= 403 (:status response)))))))
 
     (testing "POST"
       (with-redefs [datomic/conn mock-conn]
@@ -313,7 +327,15 @@
           (is (not= entry-id (:db/id entry)))
           (is (= desc (:entry/description entry)))
           (is (= duration (:entry/duration entry)))
-          (is (= start (:entry/start entry))))))
+          (is (= start (:entry/start entry)))))
+
+      (testing "a non-existent user should return a 404"
+        (let [response (-> (sut/app (-> (mock/request :post (str "/users/1234/time-sheet"))
+                                        (mock/json-body {:description "desc"
+                                                         :duration 12345
+                                                         :start "2020-01-01"})
+                                        (with-auth-header admin-user-id))))]
+          (is (= 404 (:status response))))))
 
     (testing "PUT"
       (with-redefs [datomic/conn mock-conn]
@@ -331,7 +353,23 @@
           (is (= desc (:entry/description entry)))
           (is (= duration (:entry/duration entry)))
           (is (= start (:entry/start entry)))
-          (is (= normal-user-id (:db/id (:user/id entry)))))))
+          (is (= normal-user-id (:db/id (:user/id entry)))))
+
+        (testing "if the entry exists for a different user, you should get a 404"
+          (let [response (-> (sut/app (-> (mock/request :put (str "/users/" admin-user-id "/time-sheet" entry-id))
+                                          (mock/json-body {:description "desc"
+                                                           :duration 12345
+                                                           :start "2020-01-01"})
+                                          (with-auth-header admin-user-id))))]
+            (is (= 404 (:status response)))))
+
+        (testing "a non-existent user should return a 404"
+          (let [response (-> (sut/app (-> (mock/request :put (str "/users/1234/time-sheet/" entry-id))
+                                          (mock/json-body {:description "desc"
+                                                           :duration 12345
+                                                           :start "2020-01-01"})
+                                          (with-auth-header admin-user-id))))]
+            (is (= 404 (:status response)))))))
 
     (testing "DELETE"
       (with-redefs [datomic/conn mock-conn]
@@ -343,4 +381,14 @@
                            :where [?e :entry/description]]
                          (d/db mock-conn) entry-id)]
           (is (= 200 (:status response)))
-          (is (nil? entry)))))))
+          (is (nil? entry))))
+
+      (testing "if the entry exists for a different user, you should get a 404"
+        (let [response (-> (sut/app (-> (mock/request :delete (str "/users/" admin-user-id "/time-sheet" entry-id))
+                                        (with-auth-header admin-user-id))))]
+          (is (= 404 (:status response)))))
+
+      (testing "a non-existent user should return a 404"
+        (let [response (-> (sut/app (-> (mock/request :delete (str "/users/1234/time-sheet/" entry-id))
+                                        (with-auth-header admin-user-id))))]
+          (is (= 404 (:status response))))))))

@@ -42,21 +42,26 @@
    (context "/time-sheet" []
      (GET "/" {{:keys [user-id]} :identity}
        (let [db (datomic/user-db (or override-user-id user-id))]
-         (ok {:time-sheet-entries (queries/get-timesheet-entries db)})))
+         (if (or (nil? override-user-id) (some? (queries/get-user-by-id db override-user-id)))
+           (ok {:time-sheet-entries (queries/get-timesheet-entries db)})
+           (not-found {:error "User does not exist"}))))
 
      (POST "/" {{:keys [description start duration] :as body} :body
                 {:keys [user-id]} :identity}
-       (u/with-spec
-        body :request/create-time-sheet-entry
-         (let [entry {:db/id "new"
-                      :entry/description description
-                      :entry/start (tc/to-date (tc/from-string start))
-                      :entry/duration duration
-                      :user/id (or override-user-id user-id)}
-               result @(d/transact datomic/conn (datomic/->transactions entry))]
-           (ok (-> entry
-                   (update :db/id (:tempids result))
-                   (dissoc :user/id))))))
+       (let [db (datomic/user-db (or override-user-id user-id))]
+         (if (or (nil? override-user-id) (some? (queries/get-user-by-id db override-user-id)))
+           (u/with-spec
+            body :request/create-time-sheet-entry
+             (let [entry {:db/id "new"
+                          :entry/description description
+                          :entry/start (tc/to-date (tc/from-string start))
+                          :entry/duration duration
+                          :user/id (or override-user-id user-id)}
+                   result @(d/transact datomic/conn (datomic/->transactions entry))]
+               (ok (-> entry
+                       (update :db/id (:tempids result))
+                       (dissoc :user/id)))))
+           (not-found {:error "User does not exist"}))))
 
      (PUT "/:id" [id :<< as-int :as {{:keys [description start duration] :as body} :body
                                      {:keys [user-id]} :identity}]
@@ -144,8 +149,8 @@
 
   (POST "/register" {body :body}
     (create-user!
-     ;; remove roles field in case someone tries to set roles through this endpoint
-     (dissoc body :roles)))
+     ;; can only register as a normal user
+     (assoc body :roles ["role/user"])))
 
   (POST "/login" request
     (if (s/valid? :request/login (:body request))

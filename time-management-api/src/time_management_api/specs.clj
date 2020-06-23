@@ -49,9 +49,11 @@
 
 (s/def :request/create-user
   (s/keys :req-un [:user/email
-                   :user/password]
-          :opt-un [:user/roles]))
-(s/def :request/login :request/create-user)
+                   :user/password
+                   :user/roles]))
+(s/def :request/login
+  (s/keys :req-un [:user/email
+                   :user/password]))
 
 (s/def :request/create-time-sheet-entry
   (s/keys :req-un [:entry/description
