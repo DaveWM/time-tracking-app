@@ -236,7 +236,15 @@
           (is (= desc (:entry/description entry)))
           (is (= duration (:entry/duration entry)))
           (is (= start (:entry/start entry)))
-          (is (= admin-user-id (:db/id (:user/id entry)))))))
+          (is (= admin-user-id (:db/id (:user/id entry)))))
+
+        (testing "should not allow a start date in the future"
+          (let [response (sut/app (-> (mock/request :post "/time-sheet")
+                                      (mock/json-body {:description description
+                                                       :duration duration
+                                                       :start (tc/to-string "2030-01-01")})
+                                      (with-auth-header admin-user-id)))]
+            (is (= 400 (:status response)))))))
 
     (testing "PUT"
       (with-redefs [datomic/conn mock-conn]
@@ -253,7 +261,15 @@
           (is (= 200 (:status response)))
           (is (= desc (:entry/description entry)))
           (is (= duration (:entry/duration entry)))
-          (is (= start (:entry/start entry))))))
+          (is (= start (:entry/start entry))))
+
+        (testing "should not allow a start date in the future"
+          (let [response (sut/app (-> (mock/request :put (str "/time-sheet/" entry-id))
+                                      (mock/json-body {:description description
+                                                       :duration duration
+                                                       :start (tc/to-string "2030-01-01")})
+                                      (with-auth-header admin-user-id)))]
+            (is (= 400 (:status response)))))))
 
     (testing "DELETE"
       (with-redefs [datomic/conn mock-conn]
@@ -295,7 +311,7 @@
           (is (= duration (:entry/duration (first entries)))))
 
         (testing "a non-existent user should return a 404"
-          (let [response (-> (sut/app (-> (mock/request :get (str "/users/1234/time-sheet"))
+          (let [response (-> (sut/app (-> (mock/request :get (str "/users/123456/time-sheet"))
                                           (with-auth-header admin-user-id))))]
             (is (= 404 (:status response)))))
 
@@ -327,15 +343,15 @@
           (is (not= entry-id (:db/id entry)))
           (is (= desc (:entry/description entry)))
           (is (= duration (:entry/duration entry)))
-          (is (= start (:entry/start entry)))))
+          (is (= start (:entry/start entry))))
 
-      (testing "a non-existent user should return a 404"
-        (let [response (-> (sut/app (-> (mock/request :post (str "/users/1234/time-sheet"))
-                                        (mock/json-body {:description "desc"
-                                                         :duration 12345
-                                                         :start "2020-01-01"})
-                                        (with-auth-header admin-user-id))))]
-          (is (= 404 (:status response))))))
+        (testing "a non-existent user should return a 404"
+          (let [response (-> (sut/app (-> (mock/request :post (str "/users/1234/time-sheet"))
+                                          (mock/json-body {:description "desc"
+                                                           :duration 12345
+                                                           :start "2020-01-01"})
+                                          (with-auth-header admin-user-id))))]
+            (is (= 404 (:status response)))))))
 
     (testing "PUT"
       (with-redefs [datomic/conn mock-conn]
@@ -381,14 +397,14 @@
                            :where [?e :entry/description]]
                          (d/db mock-conn) entry-id)]
           (is (= 200 (:status response)))
-          (is (nil? entry))))
+          (is (nil? entry)))
 
-      (testing "if the entry exists for a different user, you should get a 404"
-        (let [response (-> (sut/app (-> (mock/request :delete (str "/users/" admin-user-id "/time-sheet" entry-id))
-                                        (with-auth-header admin-user-id))))]
-          (is (= 404 (:status response)))))
+        (testing "if the entry exists for a different user, you should get a 404"
+          (let [response (-> (sut/app (-> (mock/request :delete (str "/users/" admin-user-id "/time-sheet" entry-id))
+                                          (with-auth-header admin-user-id))))]
+            (is (= 404 (:status response)))))
 
-      (testing "a non-existent user should return a 404"
-        (let [response (-> (sut/app (-> (mock/request :delete (str "/users/1234/time-sheet/" entry-id))
-                                        (with-auth-header admin-user-id))))]
-          (is (= 404 (:status response))))))))
+        (testing "a non-existent user should return a 404"
+          (let [response (-> (sut/app (-> (mock/request :delete (str "/users/1234/time-sheet/" entry-id))
+                                          (with-auth-header admin-user-id))))]
+            (is (= 404 (:status response)))))))))

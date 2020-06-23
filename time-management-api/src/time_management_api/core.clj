@@ -42,14 +42,14 @@
    (context "/time-sheet" []
      (GET "/" {{:keys [user-id]} :identity}
        (let [db (datomic/user-db (or override-user-id user-id))]
-         (if (or (nil? override-user-id) (some? (queries/get-user-by-id db override-user-id)))
+         (if (some? (queries/get-user-by-id db (or override-user-id user-id)))
            (ok {:time-sheet-entries (queries/get-timesheet-entries db)})
            (not-found {:error "User does not exist"}))))
 
      (POST "/" {{:keys [description start duration] :as body} :body
                 {:keys [user-id]} :identity}
        (let [db (datomic/user-db (or override-user-id user-id))]
-         (if (or (nil? override-user-id) (some? (queries/get-user-by-id db override-user-id)))
+         (if (some? (queries/get-user-by-id db (or override-user-id user-id)))
            (u/with-spec
             body :request/create-time-sheet-entry
              (let [entry {:db/id "new"

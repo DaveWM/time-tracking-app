@@ -2,7 +2,8 @@
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [phrase.alpha :refer [defphraser]]
-            [clj-time.coerce :as tc]))
+            [clj-time.coerce :as tc]
+            [clj-time.core :as t]))
 
 (def email-regex
   "Regex that matches all valid emails, copied from https://emailregex.com"
@@ -35,10 +36,13 @@
 
 (s/def :entry/description string?)
 
-(s/def :entry/start (s/and string? tc/from-string))
+(s/def :entry/start (s/and string? tc/from-string #(t/before? (tc/from-string %) (t/now))))
 (defphraser tc/from-string
   [_ {:keys [val]}]
   (str val " is not a valid date."))
+(defphraser #(t/before? (tc/from-string %) (t/now))
+  [_ _]
+  "Start date must not be in the future.")
 
 (s/def :entry/duration pos-int?)
 (defphraser pos-int?
