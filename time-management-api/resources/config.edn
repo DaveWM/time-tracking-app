@@ -1,4 +1,5 @@
 {:port #long #or [#env API_PORT "8081"]
+ ;; I've added a default just for convenience, in a real project I'd remove it to reduce the risk of error
  :auth-secret #or [#env AUTH_SECRET "super secret secret"]
  :datomic/db-uri #or [#env DATOMIC_URI
                       "datomic:dev://localhost:4334/toptal"]}
