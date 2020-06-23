@@ -208,6 +208,7 @@
          [:legend.uk-legend "Settings"]
          [form-input "Preferred Working Hours per Day" preferred-working-hours {:type "number"
                                                                                 :min 0
+                                                                                :max 24
                                                                                 :step 1}]
          [:button.uk-button.uk-button-primary "Save"]])
       spinner)))
@@ -283,7 +284,6 @@
 
 (defn not-authorized-page []
   [:div.uk-alert-danger {"uk-alert" ""}
-   [:a.uk-alert-close {"uk-close" ""}]
    [:p "You don't have permission to access this page. Please contact your administrator."]])
 
 
@@ -325,6 +325,5 @@
        [:div.uk-section
         [:div.uk-container.uk-container-large
          (when @error [:div.uk-alert-danger {"uk-alert" ""}
-                       [:a.uk-alert-close {"uk-close" ""}]
                        [:p @error]])
          [show-page page params]]]])))

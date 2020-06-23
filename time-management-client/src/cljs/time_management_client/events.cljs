@@ -79,7 +79,8 @@
      (cond
        (clojure.set/subset? route-roles user-roles) (-> (effects-on-page-load page route-params db)
                                                         (assoc-in [:db :page] page)
-                                                        (assoc-in [:db :route-params] route-params))
+                                                        (assoc-in [:db :route-params] route-params)
+                                                        (assoc-in [:db :error] nil))
        (nil? decoded-token) {:db db
                              ::effects/navigate-to "/login"}
        :else {:db (assoc db :page :not-authorized)}))))
@@ -137,7 +138,8 @@
        (assoc-in [:time-sheet-entries user-id] (->> time-sheet-entries
                                                     (map #(-> [(:db/id %) %]))
                                                     (into {})))
-       (assoc :loading false))))
+       (assoc :loading false
+              :error nil))))
 
 (def-event-fx
   ::logout
@@ -253,7 +255,8 @@
  ::received-settings
  (fn-traced [db [_ settings]]
    (assoc db :settings settings
-             :loading false)))
+             :loading false
+             :error nil)))
 
 
 (def-event-fx
@@ -284,7 +287,8 @@
                          (map #(update % :user/role (partial map keyword)))
                          (map #(-> [(:db/id %) %]))
                          (into {}))
-             :loading false)))
+             :loading false
+             :error nil)))
 
 (def-event-fx
  ::delete-user
