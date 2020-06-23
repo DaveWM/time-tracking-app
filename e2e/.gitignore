@@ -1,2 +1,4 @@
 node_modules
 .cpcache
+cypress/screenshots
+cypress/videos
