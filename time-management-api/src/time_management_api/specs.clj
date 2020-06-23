@@ -66,10 +66,12 @@
 (s/def :request/update-time-sheet-entry :request/create-time-sheet-entry)
 
 
-(s/def :settings/preferred-working-hours pos-int?)
+(s/def :settings/preferred-working-hours (s/and pos-int? #(<= % 24)))
 (defphraser pos-int? [_ {:keys [val]}]
   {:via [:settings/preferred-working-hours]}
   (str val " is not valid for 'preferred working hours', it must be an integer above 0"))
+(defphraser #(<= % max) [_ _ max]
+  (str "Must be less than " max))
 
 
 (s/def :request/update-settings

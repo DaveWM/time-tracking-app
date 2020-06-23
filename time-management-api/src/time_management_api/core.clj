@@ -57,10 +57,13 @@
                           :entry/start (tc/to-date (tc/from-string start))
                           :entry/duration duration
                           :user/id (or override-user-id user-id)}
-                   result @(d/transact datomic/conn (datomic/->transactions entry))]
-               (ok (-> entry
-                       (update :db/id (:tempids result))
-                       (dissoc :user/id)))))
+                   txs (datomic/->transactions entry)]
+               (if (validation/no-day-more-than-24-hours? (:db-after (d/with db txs)))
+                 (let [result @(d/transact datomic/conn txs)]
+                   (ok (-> entry
+                           (update :db/id (:tempids result))
+                           (dissoc :user/id))))
+                 (bad-request {:error "You have tried to log more than 24 hours for a single day."}))))
            (not-found {:error "User does not exist"}))))
 
      (PUT "/:id" [id :<< as-int :as {{:keys [description start duration] :as body} :body
@@ -107,10 +110,10 @@
       (u/with-spec body :request/update-user
         (let [db (d/db datomic/conn)
               existing-user (d/pull db '[* {:user/role [:db/ident]}] id)
-              updated-user {:db/id id
-                            :user/email (:email body)
-                            :user/password (when (:password body) (buddy.hashers/derive (:password body)))
-                            :user/role (mapv #(-> {:db/ident (keyword %)}) (:roles body))}]
+              updated-user (cond-> {:db/id id
+                                    :user/email (:email body)
+                                    :user/role (mapv #(-> {:db/ident (keyword %)}) (:roles body))}
+                                   (some? (:password body)) (assoc :user/password (buddy.hashers/derive (:password body))))]
           (if (some? (:user/email existing-user))
             (do @(d/transact datomic/conn (datomic/->transactions
                                            updated-user
@@ -152,17 +155,15 @@
      ;; can only register as a normal user
      (assoc body :roles ["role/user"])))
 
-  (POST "/login" request
-    (if (s/valid? :request/login (:body request))
-      (let [{:keys [email password]} (:body request)
-            existing-user (queries/get-user-by-email (d/db datomic/conn) email)]
+  (POST "/login" {{:keys [email password] :as body} :body}
+    (u/with-spec body :request/login
+      (let [existing-user (queries/get-user-by-email (d/db datomic/conn) email)]
         (if (and (some? existing-user) (buddy.hashers/check password (:user/password existing-user)))
           (ok {:email email
                :roles (:user/role existing-user)
                :token (auth/create-token existing-user)})
           ;; return a 404 if password isn't correct - don't want to give away that the user exists
-          (not-found {:error "Email doesn't exist, or password isn't correct"})))
-      (bad-request {:error (phrase.alpha/phrase-first {} :request/create-user (:body request))})))
+          (not-found {:error "Email doesn't exist, or password isn't correct"})))))
 
   (wrap-routes authenticated-only-routes
                #(-> %

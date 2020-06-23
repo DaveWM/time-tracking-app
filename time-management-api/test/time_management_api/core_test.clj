@@ -182,6 +182,15 @@
               (is (buddy.hashers/check password (:user/password admin-user)))
               (is (= #{{:db/ident :role/user}} (set (:user/role admin-user))))))
 
+          (testing "if a password isn't supplied, the password shouldn't be updated"
+            (let [response (-> (sut/app (-> (mock/request :put (str "/users/" admin-user-id))
+                                            (mock/json-body {:email "new-email@gmail.com"
+                                                             :roles #{:role/user}})
+                                            (with-auth-header admin-user-id))))
+                  admin-user (d/pull (d/db forked-conn) '[* {:user/role [:db/ident]}] admin-user-id)]
+              (is (= "new-email@gmail.com" (:user/email admin-user)))
+              (is (buddy.hashers/check "password12345" (:user/password admin-user)))))
+
           (testing "a non-existent user should return a 404"
             (let [response (-> (sut/app (-> (mock/request :put "/users/1234")
                                             (mock/json-body {:email "test@test.com"
@@ -247,6 +256,14 @@
                                                        :duration duration
                                                        :start (tc/to-string "2030-01-01")})
                                       (with-auth-header admin-user-id)))]
+            (is (= 400 (:status response)))))
+
+        (testing "should not allow an entry of more than 24 hours"
+          (let [response (sut/app (-> (mock/request :post "/time-sheet")
+                                      (mock/json-body {:description description
+                                                       :duration (* 25 1000 60 60)
+                                                       :start (tc/to-string start)})
+                                      (with-auth-header admin-user-id)))]
             (is (= 400 (:status response)))))))
 
     (testing "PUT"
@@ -271,6 +288,14 @@
                                       (mock/json-body {:description description
                                                        :duration duration
                                                        :start (tc/to-string "2030-01-01")})
+                                      (with-auth-header admin-user-id)))]
+            (is (= 400 (:status response)))))
+
+        (testing "should not allow an entry of more than 24 hours"
+          (let [response (sut/app (-> (mock/request :put (str "/time-sheet/" entry-id))
+                                      (mock/json-body {:description description
+                                                       :duration (* 25 1000 60 60)
+                                                       :start (tc/to-string start)})
                                       (with-auth-header admin-user-id)))]
             (is (= 400 (:status response)))))))
 
