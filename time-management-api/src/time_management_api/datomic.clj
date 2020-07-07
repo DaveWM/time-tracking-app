@@ -88,10 +88,11 @@
 (comment
  (require 'buddy.hashers)
  ;; Insert some example data
- @(d/transact conn [[:db/add "new" :user/email "mail@davemartin.me"]
-                    [:db/add "new" :user/password (buddy.hashers/derive "password1")]
+ @(d/transact conn [[:db/add "new" :user/email "admin@gmail.com"]
+                    [:db/add "new" :user/password (buddy.hashers/derive "password123")]
                     [:db/add "new" :user/role :role/user]
-                    [:db/add "new" :user/role :role/manager]])
+                    [:db/add "new" :user/role :role/manager]
+                    [:db/add "new" :user/role :role/admin]])
 
  @(d/transact conn [[:db/add "entry" :entry/description "First entry"]
                     [:db/add "entry" :entry/start (java.util.Date.)]
